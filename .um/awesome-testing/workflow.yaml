@@ -1,0 +1,39 @@
+schemaVersion: 1
+description: Evidence-only contribution review for awesome-testing pull requests; never writes to GitHub.
+
+inputs:
+  packet:
+    kind: text
+
+environmentPassthrough:
+  - AWESOME_TESTING_REAL_CLAUDE
+  - ANTHROPIC_API_KEY
+  - CLAUDE_CONFIG_DIR
+
+agentProfiles:
+  reviewer:
+    harness:
+      kind: claude_code
+      config:
+        model: claude-sonnet-5
+        effort: low
+
+steps:
+  review:
+    kind: agent
+    agent:
+      profile: reviewer
+      systemPrompt: prompts/reviewer.md
+      message:
+        text:
+          - file: schemas/decision.json
+          - ref: inputs.packet
+    outputs:
+      decision:
+        kind: json
+        from: agent_result
+        schema: schemas/decision.json
+
+exports:
+  decision:
+    ref: outputs.review.decision
