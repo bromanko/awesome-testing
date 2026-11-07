@@ -43,6 +43,11 @@ def guard(packet: dict, decision: dict) -> dict:
         reasons.append("Approval conflicts with a deterministic contribution-rule finding.")
     if decision["decision"] == "approve" and any(f["severity"] == "blocking" for f in decision["findings"]):
         reasons.append("Approval conflicts with a blocking model finding.")
+    if decision.get("confidence") != "high" and any(
+            finding.get("kind") == "duplicate" and finding.get("severity") == "blocking"
+            for finding in decision["findings"]):
+        reasons.append("A blocking duplicate/coverage-overlap judgment is not high confidence; "
+                       "a maintainer must resolve the comparison before any action.")
     if reasons:
         decision["humanReview"] = True
     decision["guardReasons"] = reasons
@@ -50,6 +55,8 @@ def guard(packet: dict, decision: dict) -> dict:
 
 
 def action_plan(packet: dict, decision: dict, current_state: str) -> dict:
+    # Keep the action boundary safe even when a caller passes a raw model result.
+    decision = guard(packet, decision)
     pr = packet["pullRequest"]
     marker = f"<!-- awesome-testing-review:{pr['headSha']} -->"
     body = decision["contributorComment"].strip() + "\n\n" + marker

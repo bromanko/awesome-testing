@@ -118,6 +118,21 @@ citations require human review or stop preparation. New category headings and
 recognized entry updates remain supported. A model judgment is not a security
 boundary or a guarantee of curation quality.
 
+A blocking duplicate or coverage-overlap finding below high confidence always
+requires a maintainer, even if the model sets `humanReview=false`. Missing
+confidence also fails closed. The guard preserves the tentative recommendation
+and records why the comparison needs review. It runs again when building the
+action plan, so callers cannot bypass it by passing a raw model result. Such
+reports contain no hypothetical comment, review, or close requests.
+
+The prompt requires decision-driving overlap concerns to be blocking `duplicate`
+findings, with a tentative comment and a clear maintainer question when uncertain.
+Advisory observations and high-confidence decisions retain their existing routing;
+all evidence, citation, link, and stale-PR checks remain in place. This conservative
+routing fix is ported from the contribution-review experiment's commit `c869d0f`.
+It is not evidence that model confidence is calibrated or that overlap accuracy
+has improved. The revised prompt still needs a controlled live evaluation.
+
 No raw Claude sessions, configuration directories, execution directories, API
 keys, or local experiment result archives are uploaded. The only model artifact
 is the guarded report. GitHub Actions artifacts in a public repository may be
@@ -142,8 +157,13 @@ and the pinned Claude harness; GitHub-hosted Ubuntu supplies `gh`.
 
 Verification completed locally on macOS ARM64:
 
-- 48 offline regression tests, including a mocked prepare-to-report pipeline.
-- Python compilation, actionlint 1.7.12 (shellcheck unavailable), and UM 0.57.0 validation.
+- 55 offline regression tests, including a mocked prepare-to-report pipeline and
+  uncertain-overlap guards at the decision, raw action-plan, and CI report boundaries.
+- Offline replay of all 32 retained experiment cases through the ported guard:
+  maintainer routes increased from 18 to 21. Endtest (Opus low) and Persqo (Opus low
+  and high) now emit zero hypothetical requests; the other 29 routes and request
+  counts are unchanged. No model calls, source refreshes, or archive edits occurred.
+- Python compilation, actionlint 1.7.12 with shellcheck, and UM 0.57.0 validation.
 - Exact pinned run-action execution with a synthetic command-only workflow,
   named Text packet, schema-validated JSON decision, and available export path.
 - Claude 2.1.284 installation/version and wrapper flag parsing, without authentication

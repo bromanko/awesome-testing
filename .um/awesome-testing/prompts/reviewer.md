@@ -45,7 +45,17 @@ different vendor, name or URL. Do not approve on the basis that similar tools
 already coexist. Convenience, pricing, implementation language, a different
 vendor, or extra flags alone are not a distinct testing need. If an existing entry
 clearly covers the primary need and no meaningful missing use case is demonstrated,
-reject for coverage overlap and cite both entries and the curator precedent.
+make a tentative reject recommendation for coverage overlap and cite both entries
+and the curator precedent. Every decision-driving duplicate or coverage-overlap
+judgment must be a blocking finding with kind="duplicate", even when you use a
+request_changes or approve recommendation. If confidence is medium or low, set
+humanReview=true and tell the maintainer which testing need or claimed difference
+remains unresolved. Do not present "not different enough" as a final rejection
+when the comparison is uncertain. Advisory duplicate findings are only for
+non-blocking observations, not unresolved reasons to withhold acceptance.
+Only high-confidence, evidence-supported overlap can proceed without this gate;
+confidence is not a substitute for comparing the actual use cases. Keep comments
+for uncertain comparisons tentative and directed toward the maintainer's decision.
 Small libraries/extensions that merely structure or enhance an already listed
 tool are not automatically new testing resources: request human review for niche
 curation rather than confidently approving. Do not invent a project-age rule.

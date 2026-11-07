@@ -80,6 +80,92 @@ class DecisionTests(unittest.TestCase):
         self.packet["deterministicFindings"] = ["Two suggestions in one PR"]
         self.assertTrue(review.guard(self.packet, self.decision)["humanReview"])
 
+    def duplicate_finding(self, severity="blocking"):
+        return dict(kind="duplicate", severity=severity,
+                    message="The primary testing need may already be covered.",
+                    evidence=[self.packet["rules"]["readmeUrl"]])
+
+    def test_uncertain_blocking_overlap_requires_maintainer_for_every_decision(self):
+        for confidence in ("medium", "low", None, "missing"):
+            for recommendation in ("approve", "request_changes", "reject"):
+                with self.subTest(confidence=confidence, decision=recommendation):
+                    raw = dict(self.decision, decision=recommendation, confidence=confidence,
+                               findings=[self.duplicate_finding()])
+                    if confidence == "missing":
+                        raw.pop("confidence")
+                    original = json.loads(json.dumps(raw))
+                    guarded = review.guard(self.packet, raw)
+                    self.assertTrue(guarded["humanReview"])
+                    self.assertEqual(guarded["decision"], recommendation)
+                    self.assertTrue(any("coverage-overlap" in reason for reason in guarded["guardReasons"]))
+                    self.assertEqual(review.action_plan(self.packet, guarded, "open")["hypotheticalRequests"], [])
+                    self.assertEqual(raw, original)
+
+    def test_action_plan_guards_raw_uncertain_overlap(self):
+        raw = dict(self.decision, decision="reject", confidence="medium",
+                   findings=[self.duplicate_finding()])
+        plan = review.action_plan(self.packet, raw, "open")
+        self.assertTrue(plan["humanReview"])
+        self.assertEqual(plan["hypotheticalRequests"], [])
+        self.assertFalse(plan["wouldExecuteNow"])
+        self.assertEqual(plan["externalChangesPerformed"], 0)
+
+    def test_high_confidence_duplicate_keeps_existing_rejection_preview(self):
+        raw = dict(self.decision, decision="reject", findings=[self.duplicate_finding()])
+        guarded = review.guard(self.packet, raw)
+        self.assertFalse(guarded["humanReview"])
+        self.assertEqual(guarded["guardReasons"], [])
+        self.assertEqual([row["method"] for row in review.action_plan(self.packet, raw, "open")["hypotheticalRequests"]],
+                         ["POST", "PATCH"])
+
+    def test_nonblocking_duplicate_and_unrelated_fixes_are_not_newly_blocked(self):
+        for finding in (self.duplicate_finding("advisory"),
+                        dict(kind="rule", severity="blocking", message="Add a period.",
+                             evidence=[self.packet["rules"]["url"]])):
+            with self.subTest(finding=finding):
+                raw = dict(self.decision, decision="request_changes", confidence="medium", findings=[finding])
+                guarded = review.guard(self.packet, raw)
+                self.assertFalse(guarded["humanReview"])
+                self.assertEqual(len(review.action_plan(self.packet, raw, "open")["hypotheticalRequests"]), 1)
+
+    def test_guard_is_idempotent_and_preserves_model_human_review(self):
+        raw = dict(self.decision, decision="reject", humanReview=True, confidence="medium", findings=[self.duplicate_finding()])
+        guarded = review.guard(self.packet, raw)
+        self.assertTrue(guarded["humanReview"])
+        self.assertEqual(review.guard(self.packet, guarded), guarded)
+        self.assertEqual(len(guarded["guardReasons"]), 1)
+
+    def test_ci_report_routes_uncertain_overlap_to_maintainer(self):
+        for recommendation in ("approve", "request_changes", "reject"):
+            with self.subTest(decision=recommendation):
+                raw = dict(self.decision, decision=recommendation, confidence="medium",
+                           findings=[self.duplicate_finding()])
+                original = copy.deepcopy(raw)
+                guarded, plan, report = ci.render(self.packet, raw, True)
+                self.assertTrue(guarded["humanReview"])
+                self.assertEqual(guarded["decision"], recommendation)
+                self.assertTrue(plan["humanReview"])
+                self.assertEqual(plan["hypotheticalRequests"], [])
+                self.assertIn("Human review required: **True**", report)
+                self.assertIn("coverage-overlap", report)
+                self.assertEqual(raw, original)
+
+    def test_raw_action_plan_applies_existing_evidence_guards(self):
+        cases = [
+            (dict(self.packet, proposals=[]), self.decision),
+            (dict(self.packet, sources=[]), self.decision),
+            (dict(self.packet, linkCheck=dict(passed=False, results=[])), self.decision),
+            (dict(self.packet, collectionWarnings=["Incomplete patch"]), self.decision),
+            (dict(self.packet, deterministicFindings=["Two suggestions"]), self.decision),
+            (self.packet, dict(self.decision, contributorComment="See [fake](https://invented.example/claim).")),
+            (self.packet, dict(self.decision, findings=[self.duplicate_finding()])),
+        ]
+        for evidence, raw in cases:
+            with self.subTest(packet=evidence, decision=raw):
+                plan = review.action_plan(evidence, raw, "open")
+                self.assertTrue(plan["humanReview"])
+                self.assertEqual(plan["hypotheticalRequests"], [])
+
     def test_partial_patch_blocks_every_decision(self):
         self.packet["collectionWarnings"] = ["Incomplete patch"]
         for value in ("approve", "request_changes", "reject"):
