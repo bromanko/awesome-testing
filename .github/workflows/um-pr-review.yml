@@ -1,4 +1,4 @@
-name: UM contribution review (dry run)
+name: UM contribution review
 
 on:
   pull_request_target:
