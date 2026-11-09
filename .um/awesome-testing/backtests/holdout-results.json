@@ -1,0 +1,329 @@
+{
+  "phase": "holdout",
+  "aggregates": {
+    "baseline": {
+      "total": 16,
+      "labeled": 15,
+      "correct": 3,
+      "falseApprovals": 3,
+      "falseRejections": 0,
+      "abstentions": 9,
+      "failures": 0,
+      "coverage": 0.4,
+      "selectiveAccuracy": 0.5,
+      "exactActionMatches": 3,
+      "rawInclusionMatches": 9,
+      "rawActionMatches": 8,
+      "alwaysInclude": 9,
+      "alwaysExclude": 6,
+      "costUSD": 5.24303
+    },
+    "rubric": {
+      "total": 16,
+      "labeled": 15,
+      "correct": 8,
+      "falseApprovals": 2,
+      "falseRejections": 4,
+      "abstentions": 1,
+      "failures": 0,
+      "coverage": 0.9333333333333333,
+      "selectiveAccuracy": 0.5714285714285714,
+      "exactActionMatches": 7,
+      "rawInclusionMatches": 8,
+      "rawActionMatches": 7,
+      "alwaysInclude": 9,
+      "alwaysExclude": 6,
+      "costUSD": 3.93908
+    }
+  },
+  "rows": [
+    {
+      "number": 203,
+      "arm": "baseline",
+      "inclusion": "include",
+      "decision": "request_changes",
+      "expected": "include",
+      "humanReview": true,
+      "costUSD": 0.2143214
+    },
+    {
+      "number": 216,
+      "arm": "baseline",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "exclude",
+      "humanReview": false,
+      "costUSD": 0.1508056
+    },
+    {
+      "number": 217,
+      "arm": "baseline",
+      "inclusion": "exclude",
+      "decision": "reject",
+      "expected": "exclude",
+      "humanReview": true,
+      "costUSD": 0.6032190000000001
+    },
+    {
+      "number": 218,
+      "arm": "baseline",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "include",
+      "humanReview": true,
+      "costUSD": 0.4533948
+    },
+    {
+      "number": 245,
+      "arm": "baseline",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "include",
+      "humanReview": false,
+      "costUSD": 0.2842456
+    },
+    {
+      "number": 256,
+      "arm": "baseline",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "exclude",
+      "humanReview": false,
+      "costUSD": 0.19495500000000002
+    },
+    {
+      "number": 267,
+      "arm": "baseline",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "exclude",
+      "humanReview": false,
+      "costUSD": 0.2754124
+    },
+    {
+      "number": 276,
+      "arm": "baseline",
+      "inclusion": "exclude",
+      "decision": "reject",
+      "expected": "include",
+      "humanReview": true,
+      "costUSD": 0.398213
+    },
+    {
+      "number": 284,
+      "arm": "baseline",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "include",
+      "humanReview": true,
+      "costUSD": 0.13529080000000002
+    },
+    {
+      "number": 289,
+      "arm": "baseline",
+      "inclusion": "abstain",
+      "decision": "abstain",
+      "expected": "exclude",
+      "humanReview": true,
+      "costUSD": 0.42207720000000004
+    },
+    {
+      "number": 300,
+      "arm": "baseline",
+      "inclusion": "abstain",
+      "decision": "abstain",
+      "expected": "include",
+      "humanReview": true,
+      "costUSD": 0.4836462
+    },
+    {
+      "number": 322,
+      "arm": "baseline",
+      "inclusion": "include",
+      "decision": "request_changes",
+      "expected": null,
+      "humanReview": true,
+      "costUSD": 0.4087758
+    },
+    {
+      "number": 323,
+      "arm": "baseline",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "include",
+      "humanReview": true,
+      "costUSD": 0.1932892
+    },
+    {
+      "number": 340,
+      "arm": "baseline",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "include",
+      "humanReview": false,
+      "costUSD": 0.3725586
+    },
+    {
+      "number": 343,
+      "arm": "baseline",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "include",
+      "humanReview": false,
+      "costUSD": 0.4197136
+    },
+    {
+      "number": 346,
+      "arm": "baseline",
+      "inclusion": "exclude",
+      "decision": "reject",
+      "expected": "exclude",
+      "humanReview": true,
+      "costUSD": 0.23311120000000002
+    },
+    {
+      "number": 203,
+      "arm": "rubric",
+      "inclusion": "include",
+      "decision": "request_changes",
+      "expected": "include",
+      "humanReview": false,
+      "costUSD": 0.207681
+    },
+    {
+      "number": 216,
+      "arm": "rubric",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "exclude",
+      "humanReview": false,
+      "costUSD": 0.1347342
+    },
+    {
+      "number": 217,
+      "arm": "rubric",
+      "inclusion": "exclude",
+      "decision": "reject",
+      "expected": "exclude",
+      "humanReview": false,
+      "costUSD": 0.2781364
+    },
+    {
+      "number": 218,
+      "arm": "rubric",
+      "inclusion": "exclude",
+      "decision": "reject",
+      "expected": "include",
+      "humanReview": false,
+      "costUSD": 0.290171
+    },
+    {
+      "number": 245,
+      "arm": "rubric",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "include",
+      "humanReview": false,
+      "costUSD": 0.356275
+    },
+    {
+      "number": 256,
+      "arm": "rubric",
+      "inclusion": "exclude",
+      "decision": "reject",
+      "expected": "exclude",
+      "humanReview": false,
+      "costUSD": 0.3700726
+    },
+    {
+      "number": 267,
+      "arm": "rubric",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "exclude",
+      "humanReview": false,
+      "costUSD": 0.2714132
+    },
+    {
+      "number": 276,
+      "arm": "rubric",
+      "inclusion": "exclude",
+      "decision": "reject",
+      "expected": "include",
+      "humanReview": false,
+      "costUSD": 0.1207136
+    },
+    {
+      "number": 284,
+      "arm": "rubric",
+      "inclusion": "exclude",
+      "decision": "reject",
+      "expected": "include",
+      "humanReview": false,
+      "costUSD": 0.1679122
+    },
+    {
+      "number": 289,
+      "arm": "rubric",
+      "inclusion": "abstain",
+      "decision": "abstain",
+      "expected": "exclude",
+      "humanReview": true,
+      "costUSD": 0.17577919999999997
+    },
+    {
+      "number": 300,
+      "arm": "rubric",
+      "inclusion": "exclude",
+      "decision": "reject",
+      "expected": "include",
+      "humanReview": false,
+      "costUSD": 0.2082638
+    },
+    {
+      "number": 322,
+      "arm": "rubric",
+      "inclusion": "exclude",
+      "decision": "reject",
+      "expected": null,
+      "humanReview": false,
+      "costUSD": 0.216661
+    },
+    {
+      "number": 323,
+      "arm": "rubric",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "include",
+      "humanReview": false,
+      "costUSD": 0.2978814
+    },
+    {
+      "number": 340,
+      "arm": "rubric",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "include",
+      "humanReview": false,
+      "costUSD": 0.3287542
+    },
+    {
+      "number": 343,
+      "arm": "rubric",
+      "inclusion": "include",
+      "decision": "approve",
+      "expected": "include",
+      "humanReview": false,
+      "costUSD": 0.3161496
+    },
+    {
+      "number": 346,
+      "arm": "rubric",
+      "inclusion": "exclude",
+      "decision": "reject",
+      "expected": "exclude",
+      "humanReview": false,
+      "costUSD": 0.19848
+    }
+  ]
+}

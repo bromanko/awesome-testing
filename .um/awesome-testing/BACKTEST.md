@@ -1,5 +1,7 @@
 # Agent-led review backtest — 2026-11-09
 
+Latest: [fresh-case rubric evaluation](HOLDOUT-STUDY.md). Calibration gains did not establish better holdout accuracy; candidate not adopted.
+
 Follow-up: [controlled Sonnet / Opus comparison](CONTROLLED-COMPARISON.md), 44 reviews across four variants.
 
 Claude now investigates with normal tools instead of classifying a preselected
