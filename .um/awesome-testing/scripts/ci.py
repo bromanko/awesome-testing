@@ -75,22 +75,26 @@ def render(packet, raw, current):
     if not current:
         decision["humanReview"] = True
         decision["guardReasons"].append("PR changed, closed, or became draft after collection; this preview is stale.")
-    comment = html.escape(decision["contributorComment"])
-    body = (f"# PR #{packet['pullRequest']['number']} dry-run preview\n\n"
-            f"Head: `{packet['pullRequest']['headSha']}`\n\n"
-            f"Decision: **{decision['decision']}**\n\n"
-            f"Human review required: **{decision['humanReview']}**\n\n"
-            "No comment, review, approval, closure, or merge was submitted.\n\n"
-            f"{html.escape(decision.get('summary', ''))}\n\n"
-            "## Proposed contributor comment (untrusted model output)\n\n"
-            f"{comment}\n\n## Guard reasons\n\n"
-            + "\n".join("- " + html.escape(reason) for reason in decision["guardReasons"]) + "\n")
+    labels = {"approve": "Approve", "request_changes": "Request changes", "reject": "Decline"}
+    body = (f"# Review of PR #{packet['pullRequest']['number']}\n\n"
+            f"**Recommendation: {labels[decision['decision']]}**\n\n"
+            f"{html.escape(decision.get('summary', ''))}\n\n")
     research = decision["research"]
-    body += "\n## Investigation\n\n" + html.escape(research.get("historySearch", "Not reported.")) + "\n\n" + html.escape(research.get("coverageComparison", "Not reported.")) + "\n\n"
-    for source in research.get("sources", []):
-        body += "- " + html.escape(source["url"]) + " — " + html.escape(source["status"]) + ": " + html.escape(source["observation"]) + "\n"
-    if research.get("limitations"):
-        body += "\n## Unresolved questions\n\n" + "\n".join("- " + html.escape(item) for item in research["limitations"]) + "\n"
+    questions = list(decision["guardReasons"])
+    limitations = research.get("limitations", [])
+    if limitations:
+        questions = [q for q in questions if q != "The agent reports unresolved research limitations."]
+        questions.extend(limitations)
+    if decision["humanReview"] and not questions:
+        questions.append("The reviewer flagged this recommendation for a closer look.")
+    if questions:
+        body += "## Needs your judgment\n\n" + "\n".join(
+            "- " + html.escape(q) for q in dict.fromkeys(questions)) + "\n\n"
+    body += "## Suggested response\n\n" + html.escape(decision["contributorComment"]) + "\n\n"
+    investigation = [research.get("historySearch"), research.get("coverageComparison")]
+    if any(investigation):
+        body += "## Investigation\n\n" + "\n\n".join(
+            html.escape(text) for text in investigation if text) + "\n"
     return decision, body
 
 

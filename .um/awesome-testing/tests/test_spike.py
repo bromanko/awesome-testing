@@ -122,7 +122,7 @@ class DecisionTests(unittest.TestCase):
                 guarded, report = ci.render(self.packet, raw, True)
                 self.assertTrue(guarded["humanReview"])
                 self.assertEqual(guarded["decision"], recommendation)
-                self.assertIn("Human review required: **True**", report)
+                self.assertIn("## Needs your judgment", report)
                 self.assertIn("coverage-overlap", report)
                 self.assertEqual(raw, original)
 
@@ -318,8 +318,8 @@ class PipelineTests(unittest.TestCase):
                 (root / "decision.json").write_text(json.dumps(decision()))
                 ci.finish(root / "input", root / "decision.json", root / "report")
                 report = (root / "report/review.md").read_text()
-                self.assertIn("Decision: **approve**", report)
-                self.assertIn("a" * 40, report)
+                self.assertIn("**Recommendation: Approve**", report)
+                self.assertNotIn("## Needs your judgment", report)
                 self.assertEqual(sum(call.args[0] == f"repos/{collect.REPO}/pulls/7" for call in api.call_args_list), 3)
                 self.assertEqual(sorted(p.name for p in root.iterdir()), ["decision.json", "event.json", "input", "report"])
                 self.assertEqual(sorted(p.name for p in (root / "report").iterdir()),
