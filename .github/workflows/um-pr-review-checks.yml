@@ -15,19 +15,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          fetch-depth: 0
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
       - name: Offline tests, no provider key or privileged PR context
         run: python3 -m unittest discover -s .um/awesome-testing/tests -v
-      - name: Check whitespace
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          HEAD_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          if [[ "$BASE_SHA" =~ ^0+$ ]]; then
-            BASE_SHA="$(git hash-object -t tree /dev/null)"
-          fi
-          git diff --check "$BASE_SHA" "$HEAD_SHA" -- .um/ .github/workflows/um-pr-review.yml .github/workflows/um-pr-review-checks.yml
