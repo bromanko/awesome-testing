@@ -1,5 +1,7 @@
 # Agent-led review backtest — 2026-11-09
 
+Follow-up: [controlled Sonnet / Opus comparison](CONTROLLED-COMPARISON.md), 44 reviews across four variants.
+
 Claude now investigates with normal tools instead of classifying a preselected
 evidence packet. These runs demonstrate that the integration works and produces
 more extensive research traces. They do **not** establish better curation judgment than the old

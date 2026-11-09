@@ -1,0 +1,760 @@
+{
+  "aggregates": {
+    "opus-agent": {
+      "runs": 11,
+      "matches": 3,
+      "scored": 8,
+      "humanReview": 8,
+      "guardedHumanReview": 9,
+      "costUSD": 5.63378,
+      "meanSeconds": 55.3
+    },
+    "opus-brief": {
+      "runs": 11,
+      "matches": 2,
+      "scored": 8,
+      "humanReview": 6,
+      "guardedHumanReview": 11,
+      "costUSD": 6.56375,
+      "meanSeconds": 81.7
+    },
+    "opus-fixed": {
+      "runs": 11,
+      "matches": 3,
+      "scored": 8,
+      "humanReview": 9,
+      "guardedHumanReview": 10,
+      "costUSD": 7.2406,
+      "meanSeconds": 36.1
+    },
+    "sonnet-agent": {
+      "runs": 11,
+      "matches": 2,
+      "scored": 8,
+      "humanReview": 6,
+      "guardedHumanReview": 11,
+      "costUSD": 4.8183,
+      "meanSeconds": 112.2
+    }
+  },
+  "rows": [
+    {
+      "arm": "opus-agent",
+      "number": 107,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.47174639999999995,
+      "seconds": 39.71,
+      "toolCalls": 10,
+      "summary": "The PR adds one correctly formatted line for playwright-page-object, a real TypeScript library whose README describes it as a \"typed, decorator-driven Page Object Model for Playwright.\" The base README has no duplicate and no earlier submission proposed it, so I tentatively recommend approving, but a maintainer should decide whether a small helper library on top of Playwright adds enough to the list.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-agent",
+      "number": 297,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.603824,
+      "seconds": 46.88,
+      "toolCalls": 13,
+      "summary": "The PR adds one accurate, correctly formatted entry for Endtest to UI & End-to-End Testing. Endtest's homepage supports every claim in the description, and no earlier submission proposed it. However, it overlaps heavily with the listed BugBug, TestingBot and TestMu AI, so whether it adds a distinct testing need is left to the maintainer.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-agent",
+      "number": 333,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "approve",
+      "match": true,
+      "costUSD": 0.4568358,
+      "seconds": 65.31,
+      "toolCalls": 12,
+      "summary": "The PR adds one correctly formatted API Testing entry, and the captured BestJSON page supports its description (path-level diffs, by-position, ignore-order and match-by-ID array modes, in-browser processing). The pinned base README has no JSON diff tool, so this tentatively fills a gap, but a maintainer should decide whether a general-purpose JSON utility submitted by its vendor fits the list and how it relates to the earlier JSON diff proposal in PR #210.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-agent",
+      "number": 34,
+      "decision": "request_changes",
+      "humanReview": false,
+      "guardedHumanReview": false,
+      "expected": null,
+      "match": null,
+      "costUSD": 0.4609754,
+      "seconds": 40.22,
+      "toolCalls": 8,
+      "summary": "DeepfakeHTTP is a real, MIT-licensed mock HTTP server that answers requests by matching them against request/response dump files. That fits the list's testing scope, but the PR puts it under \"Security\" next to BeEF and OWASP ZAP, even though its documentation describes it mainly as an API mocking and testing tool, so it should move to \"Make your life easier\" (or a new mocking section) before merge.",
+      "guardReasons": []
+    },
+    {
+      "arm": "opus-agent",
+      "number": 347,
+      "decision": "reject",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": true,
+      "costUSD": 0.6548278,
+      "seconds": 78.61,
+      "toolCalls": 26,
+      "summary": "The PR adds one well-formed line for receivemail.dev to Test Data Management. The product works as described, but the base README already lists four disposable-inbox services for automated email-verification tests (TempMailGrab, TempMail Hub, Mails.ai, mailsocket), and the main difference here is keyless onboarding, which looks like packaging rather than a new testing need, so I tentatively recommend rejecting it as redundant and leaving the final call to a maintainer.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations.",
+        "A blocking duplicate/coverage-overlap judgment needs a maintainer to resolve the uncertain comparison."
+      ]
+    },
+    {
+      "arm": "opus-agent",
+      "number": 35,
+      "decision": "approve",
+      "humanReview": false,
+      "guardedHumanReview": true,
+      "expected": "approve",
+      "match": true,
+      "costUSD": 0.37288040000000006,
+      "seconds": 45.23,
+      "toolCalls": 10,
+      "summary": "The PR adds one entry for DeepfakeHTTP under \"Make your life easier\". It is a real MIT-licensed mock server that replays HTTP request/response dumps to test REST and GraphQL clients, and the description is accurate and ends with a full stop. It resubmits PR #34, where the maintainer questioned the Security placement and the contributor promised a fix. The base list has no standalone API mock server: Requestly, the closest entry, mocks responses by intercepting browser/desktop traffic and is not a dump-driven stand-in backend, so I recommend approval.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context."
+      ]
+    },
+    {
+      "arm": "opus-agent",
+      "number": 354,
+      "decision": "request_changes",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "approve",
+      "match": false,
+      "costUSD": 0.6319626000000002,
+      "seconds": 94.2,
+      "toolCalls": 32,
+      "summary": "The PR adds one line: Persqo, a real AI-persona usability-testing SaaS, to Accessibility & Usability Testing. The description mostly matches the official site, but it gives \"$59/month\" where Persqo's pricing page shows a $49 Starter plan, and the list already has Barbwire, which is close enough that a maintainer should decide whether Persqo adds distinct value.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-agent",
+      "number": 360,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": null,
+      "match": null,
+      "costUSD": 0.5218218,
+      "seconds": 60.5,
+      "toolCalls": 20,
+      "summary": "The PR adds a one-line, correctly formatted bareenv entry. The description matches the official repository: a Node CLI and GitHub Action that runs a command with each chosen environment variable unset, empty or invalid, and reports the cases that break. Nothing in the base README automates this check, but bareenv is a CLI and CI action rather than a framework, so maintainers should confirm whether \"Test Automation Frameworks\" is acceptable placement.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-agent",
+      "number": 362,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.5923242,
+      "seconds": 61.86,
+      "toolCalls": 18,
+      "summary": "This PR adds one correctly formatted line to Test Data Management for Email Blackhole, a hosted dummy SMTP server with a test inbox and wait-for-email API, and the homepage confirms the description. Its wait-and-extract feature overlaps with TempMailGrab, Mails.ai and mailsocket, which are already listed. Its SMTP sink, which catches any mail an app sends without delivering it, is not offered by any tool in the base README, so I lean toward approving but the maintainer should decide whether that difference is enough under the redundancy standard applied in #347.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-agent",
+      "number": 370,
+      "decision": "approve",
+      "humanReview": false,
+      "guardedHumanReview": false,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.5772016,
+      "seconds": 44.55,
+      "toolCalls": 11,
+      "summary": "The PR adds one well-formed line to Browser Extensions & Utilities for RequestFox. The official site confirms it is a free Chrome/Firefox extension that records a web app's API calls during testing and automatically flags failed, slow, duplicate, GraphQL-error-in-200 and expired-token calls. That passive monitoring with automatic flagging is not what the listed Requestly (intercept/modify, API client) or Keploy API Test Recorder (turns recordings into tests) entries describe, and no earlier RequestFox submission was found.",
+      "guardReasons": []
+    },
+    {
+      "arm": "opus-agent",
+      "number": 81,
+      "decision": "reject",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": null,
+      "match": null,
+      "costUSD": 0.2893806,
+      "seconds": 31.46,
+      "toolCalls": 7,
+      "summary": "Suites is a real, open-source TypeScript unit-testing framework, and the entry describes it accurately. However, the list's Foreword limits it to testing done after code is written and says \"no unit tests/static analysis!\", so this addition looks out of scope. I'm recommending rejection, but a maintainer should confirm because the list already includes a unit-testing book and Keploy, which generates unit tests.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-brief",
+      "number": 107,
+      "decision": "approve",
+      "humanReview": false,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.4308430000000001,
+      "seconds": 39.12,
+      "toolCalls": 10,
+      "summary": "The PR adds one line for playwright-page-object, an MIT-licensed TypeScript library that provides a typed, decorator-driven Page Object Model for Playwright. Its README describes \"a locator-composition layer, not a framework\": decorators scope classes to locators, locator chains are lazy, and three output styles are available (raw Locator, custom controls, or built-in PageObject/ListPageObject). The entry's description is accurate. The line sits in alphabetical order between playwright-bdd and QA Wolf, uses the list's `- [Name](url) - Description.` format, and ends with a period, so it meets every written rule in CONTRIBUTING.md. The pinned README lists no Page Object Model helper. playwright-bdd covers BDD/Gherkin, a different need, so this entry is not redundant. Playwright's own POM guide shows the hand-written pattern that this library structures. No earlier submission of this tool appears in the history index. The repo is young (3 stars, 0 forks in the November 2026 capture). The rules set no popularity threshold, so that is a curation judgment, not a blocker.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-brief",
+      "number": 297,
+      "decision": "approve",
+      "humanReview": false,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.7300662000000001,
+      "seconds": 185.63,
+      "toolCalls": 16,
+      "summary": "The PR adds one line for Endtest to UI & End-to-End Testing, between Drengr Runner and Ferrum. That spot keeps the section's alphabetical order, and the description ends with a full stop as CONTRIBUTING.md requires. Endtest is not in the pinned base README, and no earlier PR title in the time-filtered index mentions it. Each claim in the description matches the frozen endtest.io homepage: AI test creation (including Endtest Bot, which creates tests on its own), a codeless low-code editor and recorder, runs on real Windows and macOS machines with Chrome, Firefox, Safari and Edge, CI/CD integration, and support for web and mobile apps. The closest listed tools overlap only partly. BugBug is no-code but works only in Chromium browsers, on web apps. TestingBot is mainly a cloud for running existing Selenium, Appium and other framework tests. Octomind and DevAssure are AI-agent tools. Endtest is worth listing because it offers codeless, agent-driven test creation and runs tests on real non-Chromium browsers in the same platform. It is commercial, but the list already includes commercial tools and no rule excludes them.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-brief",
+      "number": 333,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "approve",
+      "match": true,
+      "costUSD": 0.5566538000000001,
+      "seconds": 100.2,
+      "toolCalls": 16,
+      "summary": "Adds BestJSON JSON Diff at the end of API Testing. The pinned base README has no JSON comparison tool. Nearby entries (SpecTest, postman2pytest, JSON Validation Test Cases) are a framework, a converter and fixtures, so this is not a duplicate. The captured page supports the description: structural diff, three array modes (by position, ignore order with duplicate counts, match by unique ID), ignore paths, and in-browser Web Worker processing. The entry follows the written rules (short, ends with a period) and is in the right section. Affiliation is disclosed, which no rule forbids. Open curation question: earlier PR #210 proposed a very similar browser JSON diff for the same section, and it is not in the base README. Its outcome is unknown. Tentative approve.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-brief",
+      "number": 34,
+      "decision": "request_changes",
+      "humanReview": false,
+      "guardedHumanReview": true,
+      "expected": null,
+      "match": null,
+      "costUSD": 0.44280280000000005,
+      "seconds": 41.41,
+      "toolCalls": 8,
+      "summary": "DeepfakeHTTP is an MIT-licensed, single-jar Java web server. It answers requests by matching them against plain-text HTTP request/response dumps. Its README lists REST and GraphQL API mocking and testing, PoCs and demos, and HTTP tinkering as its uses. It also offers templates, wildcards, per-entry delays, live request/response collection and an OpenAPI client. That gives testers a useful, low-setup way to stand up a stubbed backend, which the pinned README doesn't otherwise offer. Requestly can mock responses, but only by intercepting traffic in a browser extension or desktop proxy, not as a standalone server built from recorded dumps.\n\nThe entry follows the written rules. It's one suggestion, the description is short, accurate and ends with a period, and there are no duplicates in the base README or in earlier PR titles. The problem is placement: it was added under Software > Security, between BeEF and OWASP ZAP. Both of those are offensive or security-scanning tools, and DeepfakeHTTP is a mock/stub server. Moving it to \"Make your life easier\", or adding a small API mocking section, would fit how the list is organized. That's a fixable curation issue, not a reason to exclude the tool.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-brief",
+      "number": 347,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.8926382000000002,
+      "seconds": 64.63,
+      "toolCalls": 16,
+      "summary": "The PR adds one line for receivemail.dev to Test Data Management. It sits with the other disposable-inbox entries. The frozen product page backs up each claim in the entry: one POST /mailboxes call creates a mailbox and returns an address plus a per-mailbox secret, you can poll it or long-poll it through /wait, and the free tier needs no signup and no API key. Paid Pro tiers exist, and the PR body discloses them and says the submitter is the author. The line follows the written rules: it is a single suggestion, short, and ends with a full stop. The concern is redundancy. The base README already lists six temporary-inbox entries. Three of them are automation APIs (TempMailGrab, Mails.ai, mailsocket), and according to their frozen docs all three use an API key: TempMailGrab requires an account and key, Mails.ai requires an API key, and mailsocket's code examples authenticate with a key. receivemail.dev is the only listed API that needs no key or account at all, so a CI job can create a mailbox with a single curl call. That is a real difference, though a small one. The contribution rules do not limit how many similar tools a section can hold, so whether a seventh email-inbox entry is worth it is the maintainer's call. I lean toward approving because the line is accurate and the no-key workflow is distinct.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-brief",
+      "number": 35,
+      "decision": "approve",
+      "humanReview": false,
+      "guardedHumanReview": true,
+      "expected": "approve",
+      "match": true,
+      "costUSD": 0.3580734,
+      "seconds": 38.93,
+      "toolCalls": 10,
+      "summary": "This PR adds one line under Software > Make your life easier, for DeepfakeHTTP, an MIT-licensed Java mock web server that replays responses from HTTP request/response dump files. Its README lists \"REST, GraphQL, and other APIs mocking and testing\" as a primary use. That makes it useful for testing clients and frontends against a fake backend. Nothing in the pinned README does the same job. The closest entry, Requestly, is a browser and desktop proxy that can mock responses by intercepting traffic. It is not a standalone, file-driven server that runs anywhere, so this entry isn't redundant. The entry follows the CONTRIBUTING rules: one suggestion per PR, a short description ending with a period, and no trailing whitespace visible in the patch. It's placed directly after Requestly, which is a sensible spot. This PR resubmits #34, where the same tool was put under Security. The maintainer asked how it helped security testing, and the contributor agreed it was the wrong section and promised a fix. This PR is that fix. The only improvement is optional wording: the description repeats the tool name.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-brief",
+      "number": 354,
+      "decision": "request_changes",
+      "humanReview": false,
+      "guardedHumanReview": true,
+      "expected": "approve",
+      "match": false,
+      "costUSD": 0.5486932,
+      "seconds": 51.48,
+      "toolCalls": 15,
+      "summary": "Persqo runs AI personas (varied ages, devices, patience) through live web-app flows such as checkout in a real browser and returns ranked issues with screenshots, severity and coding-agent fix prompts. That fits Accessibility & Usability Testing. It overlaps with the listed Barbwire (AI buyer personas on public pages, ranked fixes), but Barbwire targets buyer-intent and conversion on marketing pages and never submits forms, while Persqo tests working app flows and hands fixes to coding agents. Alphabetical placement (Oh My Android < Persqo < RateMyApp) and format follow the rules. However, the stated price \"paid plans from $59/month\" contradicts both captured Persqo pages, which show Starter at $49/mo. The free-tier wording is close: the site says 3 free tests with no card, and the pricing page frames this as a 14-day trial. Fix the price and this is approvable.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-brief",
+      "number": 360,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": null,
+      "match": null,
+      "costUSD": 0.7755728000000001,
+      "seconds": 112.51,
+      "toolCalls": 40,
+      "summary": "The PR adds one line to Test Automation Frameworks: \"[bareenv](https://github.com/Blasword/bareenv) - Runs a command once per environment combination (unset, empty, invalid) and reports the ones that break.\" The repository README backs this up. bareenv is an MIT-licensed Node CLI and GitHub Action. It reruns a command with chosen environment variables unset, empty or set to an invalid path. It then sorts each run into verdicts such as env-dependent, expected-fail and not-observed, and prints a command to reproduce each failure. It can also compare a report against an earlier run so a PR fails only on new findings. The pinned README lists no tool for this kind of environment-variable robustness testing, and no earlier submission in the history index mentions it. The entry ends with a period, follows the entry format, and is a single-item PR, so it meets the written rules. Two things are judgment calls, not rule violations. First, bareenv is a test runner/utility rather than a framework, but Bats (a shell testing tool) is the closest neighbour and no better section exists. Second, the project is very new: 0 stars, 11 commits, v0.1.0, and no npm package. The maintainer has turned down 'too niche' (#107) and unproven (#288) entries before. My tentative recommendation is approve, with the maintainer deciding whether it clears the bar.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-brief",
+      "number": 362,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.5972318000000001,
+      "seconds": 65.23,
+      "toolCalls": 19,
+      "summary": "Email Blackhole adds one line to Test Data Management. It is a hosted dummy SMTP server (port 2525, STARTTLS) with an inbox and a wait-for-email HTTP API. The frozen homepage supports every claim in the description: you point your app's SMTP settings at it, wait for the email over HTTP, read the link or code, and free sessions need no signup. The base README already lists several receive-only test inboxes (TempMailGrab, mailsocket, Mails.ai, TempMail Hub and others). For #347 (receivemail.dev), the maintainer closed the PR as 'the same solution from a different provider' and said they would welcome a tool that does something the listed ones can't. Email Blackhole's main difference is SMTP capture. The app's outgoing mail is caught by changing its SMTP settings and is never delivered to a real person, and the app doesn't need a real, routable address. None of the listed entries does this, and I found no SMTP-capture tool in the pinned README. That looks like a real new capability, so my tentative recommendation is to approve. It overlaps with the listed inboxes on the wait/extract API and on the public receiving address, so the maintainer should confirm. One small issue: the PR body says the entry sits next to the other email tools, but the diff adds it at the end of the section after Brume.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-brief",
+      "number": 370,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.8748497999999998,
+      "seconds": 157.96,
+      "toolCalls": 13,
+      "summary": "PR #370 adds RequestFox to Browser Extensions & Utilities. The frozen product page backs every claim in the entry: it is free, runs in Chrome and Firefox, records a web app's API calls, and flags calls that failed, were slow or fired more than once. The entry is short, ends with a full stop and meets the written rules. The contributor disclosed that they made the tool. It partly overlaps with Requestly, Keploy API Test Recorder and BugShot/TabQA. Its distinct value is judging calls automatically during manual testing. The maintainer has closed PRs for redundant tools before, so whether this overlap is acceptable is the maintainer's call. Tentative recommendation: approve.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-brief",
+      "number": 81,
+      "decision": "reject",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": null,
+      "match": null,
+      "costUSD": 0.3563244,
+      "seconds": 41.07,
+      "toolCalls": 9,
+      "summary": "The PR adds Suites (suites.dev) under Test Automation Frameworks. The description is accurate: the frozen homepage calls it \"a unit testing framework for TypeScript backends working with inversion of control and dependency injection,\" with automatically generated typed mocks for NestJS, InversifyJS and InjectionJS on Jest or Vitest. The entry follows the formatting rules: it is short and ends with a period. The problem is scope. The pinned README foreword says the list covers testing \"after the code in question is written (no unit tests/static analysis!)\". Suites is only a developer unit-testing and mocking library, so it falls inside that stated exclusion. It also isn't comparable to Robot Framework, the only entry in its target section, which is a keyword-driven acceptance testing and RPA framework. Suites isn't a duplicate: it isn't in the base README, and no earlier submission in the index mentions it. My tentative recommendation is reject on scope. A human should still review this because the list isn't strict about the foreword: it already includes Keploy (\"generates unit test cases\") and The Art of Unit Testing book.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-fixed",
+      "number": 107,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.4503608,
+      "seconds": 35.78,
+      "toolCalls": 1,
+      "summary": "The PR adds a correctly formatted, accurately described entry for playwright-page-object, a decorator-driven Page Object Model locator-composition library for Playwright, to UI & End-to-End Testing; it is not already listed and no prior submission was found. Tentative approval, but inclusion is a curator judgment because the library is a convenience layer over a pattern Playwright already documents with plain classes.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-fixed",
+      "number": 297,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.6524048,
+      "seconds": 27.25,
+      "toolCalls": 1,
+      "summary": "The PR adds one well-formed Endtest entry to UI & End-to-End Testing, and Endtest's homepage supports the description: agentic AI test creation, codeless/low-code editing, cloud runs on real Chrome/Firefox/Safari/Edge, web and mobile, and CI/CD. The rules don't block it, but similar listed tools (TestingBot, TestMu AI, BugBug) already cover much of the same ground, so it is a tentative approve that needs a maintainer's curation call.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-fixed",
+      "number": 333,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "approve",
+      "match": true,
+      "costUSD": 0.8075158,
+      "seconds": 55.75,
+      "toolCalls": 2,
+      "summary": "The BestJSON JSON Diff entry follows the contribution rules, its description matches the official page (array matching by position, ignore-order with duplicate counts, or ID, plus ignore paths, all in the browser), and the base README has no JSON or structural diff tool. Approval is tentative: a maintainer should decide whether a general-purpose browser JSON diff is worth listing, especially since PR #210 proposed a similar JSON Diff for the same section and isn't in the base README.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-fixed",
+      "number": 34,
+      "decision": "request_changes",
+      "humanReview": false,
+      "guardedHumanReview": false,
+      "expected": null,
+      "match": null,
+      "costUSD": 0.40734400000000004,
+      "seconds": 30.36,
+      "toolCalls": 1,
+      "summary": "DeepfakeHTTP is a real, testing-relevant mock HTTP server that replays recorded request/response dumps, and the proposed description is accurate and follows the full-stop rule. However, it is inserted under the \"Security\" heading, which misrepresents its purpose; it should move to \"Make your life easier\" alongside Requestly.",
+      "guardReasons": []
+    },
+    {
+      "arm": "opus-fixed",
+      "number": 347,
+      "decision": "reject",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": true,
+      "costUSD": 0.8663208,
+      "seconds": 38.59,
+      "toolCalls": 1,
+      "summary": "receivemail.dev is a real, accurately described disposable-email API, but the base README's Test Data Management section already lists TempMailGrab, mailsocket and Mails.ai, which do the same thing: create an inbox, wait for the email and return its code or link. The only difference is getting access without a key, so this adds little new testing coverage. The tentative rejection follows the maintainer's same-category closure in PR #297 and should get a maintainer's curation check.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations.",
+        "A blocking duplicate/coverage-overlap judgment needs a maintainer to resolve the uncertain comparison."
+      ]
+    },
+    {
+      "arm": "opus-fixed",
+      "number": 35,
+      "decision": "approve",
+      "humanReview": false,
+      "guardedHumanReview": true,
+      "expected": "approve",
+      "match": true,
+      "costUSD": 0.4014968,
+      "seconds": 33.0,
+      "toolCalls": 1,
+      "summary": "This PR adds DeepfakeHTTP, a standalone server that answers requests from recorded HTTP request/response files, to \"Make your life easier\". It follows up on PR #34, where the maintainer questioned the Security placement and the contributor agreed to move it. The entry is accurate, follows the written rules and serves a different testing need from Requestly's proxy-based mocking, so I recommend approval.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context."
+      ]
+    },
+    {
+      "arm": "opus-fixed",
+      "number": 354,
+      "decision": "reject",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "approve",
+      "match": false,
+      "costUSD": 0.7603848,
+      "seconds": 39.55,
+      "toolCalls": 1,
+      "summary": "Persqo is a real product, but in this section it largely duplicates Barbwire, which is already listed: both run AI personas through a live site in a real browser and return screenshots and ranked fixes. The submitted price ($59/month) also contradicts Persqo's pricing page, which shows Starter at $49/month, so a maintainer should decide whether the apparent form/checkout interaction is distinct enough to justify a corrected entry.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations.",
+        "A blocking duplicate/coverage-overlap judgment needs a maintainer to resolve the uncertain comparison."
+      ]
+    },
+    {
+      "arm": "opus-fixed",
+      "number": 360,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": null,
+      "match": null,
+      "costUSD": 0.8111688,
+      "seconds": 30.96,
+      "toolCalls": 1,
+      "summary": "The PR adds a single, accurate, rule-compliant entry for bareenv. It is a standalone Node CLI and GitHub Action that runs a command with each environment variable unset, empty or invalid and reports which cases break, and no listed tool automates that. Approval is tentative because whether such a new, narrow tool fits the list is a curator's call, given the earlier 'too niche' rejection in #107.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-fixed",
+      "number": 362,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.8884088,
+      "seconds": 38.63,
+      "toolCalls": 1,
+      "summary": "Email Blackhole adds a dummy SMTP catcher (port 2525) that apps send mail through, which the listed inbound-address tools (TempMailGrab, Mails.ai, mailsocket) don't offer; its wait-for-email API overlaps with all three. The entry follows CONTRIBUTING.md. Tentative approve, but a maintainer should decide whether the SMTP-sink mode is a new capability under the standard used to close #347.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-fixed",
+      "number": 370,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.8577288,
+      "seconds": 38.07,
+      "toolCalls": 1,
+      "summary": "The one-line RequestFox addition follows the contribution rules, and the official site confirms the description: a free Chrome and Firefox extension that records a web app's API calls and flags failed, slow and duplicate ones. It looks distinct from Requestly and Keploy API Test Recorder mainly because it flags problems automatically during manual testing, so the maintainer should decide whether that justifies a listing, given recent closures of same-solution entries.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "opus-fixed",
+      "number": 81,
+      "decision": "reject",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": null,
+      "match": null,
+      "costUSD": 0.3374688,
+      "seconds": 28.83,
+      "toolCalls": 1,
+      "summary": "Suites is a real, accurately described TypeScript unit-testing framework for DI-based classes, but the base README foreword explicitly scopes the list to testing after code is written, with \"no unit tests/static analysis!\". Because of that explicit exclusion, and because a DI-aware mocking layer for Jest or Vitest fits poorly next to Robot Framework, I tentatively recommend rejecting. A maintainer should confirm whether the scope statement is still enforced, given that the list already includes a few items that lean toward unit testing.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "sonnet-agent",
+      "number": 107,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.2895614,
+      "seconds": 62.22,
+      "toolCalls": 10,
+      "summary": "playwright-page-object is a real, actively-maintained TypeScript decorator-based Page Object Model library for Playwright, distinct from playwright-bdd's Gherkin/BDD focus and from the Playwright docs' plain-class POM pattern, with no existing POM-specific entry in the UI & End-to-End Testing section. The entry follows formatting/placement rules exactly, but as a narrow (3-star) wrapper around an existing framework it is a curator judgment call rather than a clear-cut addition.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "sonnet-agent",
+      "number": 297,
+      "decision": "approve",
+      "humanReview": false,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.47533559999999997,
+      "seconds": 234.66,
+      "toolCalls": 32,
+      "summary": "The PR adds a single, accurately described entry for Endtest (AI-powered web/mobile test automation) to the UI & End-to-End Testing section, placed in correct alphabetical order and ending with a period. No existing entry duplicates it; the closest listed alternative, BugBug, is explicitly Chromium-web-only with no native mobile support, so Endtest's mobile coverage and autonomous AI test-creation bot represent a distinct testing need.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "sonnet-agent",
+      "number": 333,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "approve",
+      "match": true,
+      "costUSD": 0.5368064,
+      "seconds": 165.74,
+      "toolCalls": 16,
+      "summary": "BestJSON's JSON Diff is a working, as-described browser tool for structural JSON comparison with explicit array-order/ID-matching options, filling a gap since no JSON-structure diff tool currently exists in the base README's API Testing section (Image Diff there is pixel/image comparison, unrelated). The entry follows formatting rules, but an unmerged prior PR (#210, 'Add JSON Diff to API Testing') proposed a near-identical tool/description under a different vendor, which the maintainer should weigh for coordination.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "sonnet-agent",
+      "number": 34,
+      "decision": "request_changes",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": null,
+      "match": null,
+      "costUSD": 0.3202758,
+      "seconds": 74.1,
+      "toolCalls": 9,
+      "summary": "DeepfakeHTTP is a real, accurately-described MIT-licensed tool (verified via its GitHub README) that fills a genuine gap not covered by existing entries like Requestly or Synth, but the PR places it under the \"Security\" heading alongside offensive tools (BeEF, OWASP ZAP) when its primary documented use cases are API mocking/PoC, not security testing.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "sonnet-agent",
+      "number": 347,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.5276443999999999,
+      "seconds": 168.93,
+      "toolCalls": 22,
+      "summary": "receivemail.dev is a real, working disposable-email API matching its PR description, and the edit follows the list's formatting rules, but the base README already carries three near-identical API-based disposable-email testers (Mails.ai, TempMailGrab, mailsocket) that cover the same create-inbox/poll-or-wait/extract-OTP-or-link workflow for automated tests. Whether a fourth entry adds enough distinct value (chiefly: zero-signup/no-API-key mailbox creation) is a judgment call for the maintainer rather than a clear rule violation.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "sonnet-agent",
+      "number": 35,
+      "decision": "approve",
+      "humanReview": false,
+      "guardedHumanReview": true,
+      "expected": "approve",
+      "match": true,
+      "costUSD": 0.29073860000000007,
+      "seconds": 72.02,
+      "toolCalls": 10,
+      "summary": "This is a corrected resubmission of PR #34, moving DeepfakeHTTP into the appropriate 'Make your life easier' section after a maintainer questioned its placement under Security; the entry is accurate, properly formatted, and describes a standalone dump-file-driven mock server distinct from the already-listed Requestly proxy. No duplicate or rule violation was found.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "sonnet-agent",
+      "number": 354,
+      "decision": "request_changes",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "approve",
+      "match": false,
+      "costUSD": 0.4189894,
+      "seconds": 91.61,
+      "toolCalls": 15,
+      "summary": "Persqo's own pricing page lists its cheapest paid plan (Starter) at $49/month, not the $59/month stated in the PR description and README text, so the entry contains a verifiable factual error. Separately, Persqo's AI-persona/real-browser/ranked-issues-with-screenshots mechanism closely resembles the already-listed Barbwire, though Persqo targets general usability issues with coding-agent fix prompts rather than Barbwire's buyer-conversion objections, so a maintainer should judge whether that is a distinct enough testing need.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "sonnet-agent",
+      "number": 360,
+      "decision": "approve",
+      "humanReview": false,
+      "guardedHumanReview": true,
+      "expected": null,
+      "match": null,
+      "costUSD": 0.5483156,
+      "seconds": 87.16,
+      "toolCalls": 16,
+      "summary": "The PR adds bareenv, an MIT-licensed open-source CLI that systematically tests a command against unset/empty/invalid states of specified environment variables, to the Test Automation Frameworks section. The resource is real, the description is accurate, formatting follows the contribution guidelines, and no duplicate or close substitute exists in the base README or searched PR history.",
+      "guardReasons": [
+        "A decision citation has no accessed source in the research record or pinned context.",
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "sonnet-agent",
+      "number": 362,
+      "decision": "approve",
+      "humanReview": true,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.7543534000000001,
+      "seconds": 170.29,
+      "toolCalls": 24,
+      "summary": "Email Blackhole adds a dummy-SMTP-server-plus-HTTP-API testing tool to Test Data Management; verified against the base README and the three closest listed entries (Mails.ai, mailsocket, TempMailGrab), all of which only receive real internet mail sent to a hosted address and have no SMTP-endpoint/catch mode, so the PR fills a capability gap (the MailHog/Mailpit/smtp4dev style local/CI mail catcher) not currently represented in the list. The PR follows the stated contribution rules (single entry, period-terminated description, author disclosure, CC0 agreement), though inclusion of this specific sub-niche is a judgment call for the maintainer.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "sonnet-agent",
+      "number": 370,
+      "decision": "approve",
+      "humanReview": false,
+      "guardedHumanReview": true,
+      "expected": "reject",
+      "match": false,
+      "costUSD": 0.41676959999999996,
+      "seconds": 49.53,
+      "toolCalls": 10,
+      "summary": "RequestFox is a real, free Chrome/Firefox extension that passively records a web app's API calls and flags failed/slow/duplicate calls, GraphQL-200 errors and expired-token 401s \u2014 a distinct manual-testing workflow not covered by the closest existing entries (Requestly's request-modification proxy/API client, or Keploy API Test Recorder's test-generation focus). The PR is a single, correctly formatted, period-terminated entry in the right section with an honest maker disclosure, and no duplicate or overlapping prior submission was found.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    },
+    {
+      "arm": "sonnet-agent",
+      "number": 81,
+      "decision": "reject",
+      "humanReview": false,
+      "guardedHumanReview": true,
+      "expected": null,
+      "match": null,
+      "costUSD": 0.2395062,
+      "seconds": 57.99,
+      "toolCalls": 8,
+      "summary": "The README's own Foreword explicitly scopes the list to testing done after code is written and states \"no unit tests/static analysis!\", but Suites is explicitly marketed as a \"TypeScript Unit Testing Framework\" for mocking dependencies in unit tests. This places the submission outside the list's stated scope regardless of the tool's quality.",
+      "guardReasons": [
+        "The agent reports unresolved research limitations."
+      ]
+    }
+  ]
+}
