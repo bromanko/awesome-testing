@@ -1,7 +1,5 @@
 name: UM contribution review (dry run)
 
-# Intentionally uses trusted base code, NEVER a PR checkout. The model only sees data.
-# Disabled until a maintainer configures environment reviewers, key, and opt-in variable.
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, edited, ready_for_review]
@@ -24,11 +22,11 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out trusted base automation, never PR code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
       - name: Collect bounded public evidence
@@ -40,7 +38,7 @@ jobs:
           --event-file "$GITHUB_EVENT_PATH"
           --output "$RUNNER_TEMP/um-review-input"
       - name: Retain only the model packet and exact PR identity
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: um-review-input-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/um-review-input/
@@ -51,21 +49,20 @@ jobs:
     needs: collect
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    # Configure required reviewers for this environment BEFORE enabling the variable.
     environment: awesome-testing-review
     steps:
       - name: Check out the same trusted base automation
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '24'
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: um-review-input-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/um-review-input
@@ -115,7 +112,7 @@ jobs:
           --output "$RUNNER_TEMP/um-review-report"
       - name: Upload the preview, never raw agent logs or configuration
         if: steps.um.outputs.export-state == 'available'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: um-review-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
           path: ${{ runner.temp }}/um-review-report/
