@@ -1,169 +1,80 @@
-# awesome-testing PR review with Useful Machinery
+# Agent-led contribution review
 
-A dry-run port of the contribution-review experiment. The GitHub workflow collects
-public evidence, runs the existing Sonnet review through the **UM run action**,
-and retains a proposed decision/comment. It does not post comments, submit reviews,
-approve, close, or merge PRs. There is no GitHub write executor.
+This opt-in GitHub workflow asks Claude to investigate a contribution to
+awesome-testing and recommends approve, request changes, or reject. The report
+appears in the Actions run summary. It does not submit a review or comment, close
+PRs, or merge changes.
 
-## Current status
+## How it works
 
-The integration is prepared for `bromanko/awesome-testing`. Model runs are disabled
-unless `UM_PR_REVIEW_ENABLED` is exactly `true`. Creating the fork or publishing
-these files does not set that variable, create an environment, or add credentials.
-A hosted GitHub run and live model trial remain unverified.
+1. Python reads the exact PR head/base, changed-file patches, both README versions,
+   and contribution rules from GitHub. It checks that the PR remains current.
+2. UM runs the official Claude Code agent with normal tools. Claude investigates
+   the proposed resource, searches submission history, compares listed alternatives,
+   and returns a structured decision with sources and unresolved questions.
+3. Python checks the report for internal inconsistencies, checks the PR again,
+   and renders the summary. Changes during research mark the report stale.
 
-- Trigger: `pull_request_target` on opened, synchronize, reopened, edited, and
-  ready-for-review events. Drafts are skipped.
-- Trust boundary: code, prompt, schema, and workflow always come from the **base
-  commit**, never the PR head. The PR README/diff/body are API-fetched data only.
-- Model: `claude-sonnet-5`, effort `low`, using the official Claude Code executable
-  through UM with its normal tools. There is no per-invocation dollar cap.
-  Repeated PR events can incur repeated charges after enablement. Workflow
-  concurrency cancels an older run for the same PR; it is not a global spend cap.
-- Reports: `review.md` and `decision.json` are generated on the runner. The review
-  is displayed directly in the Actions run summary; no report artifacts are
-  uploaded. Only the model packet and exact PR identity are saved between steps.
-  Collection passes intermediate data in memory and fetches prior submissions
-  directly, without replay caches.
+Newly discovered sources are welcome. The source record is the agent's account
+of its investigation, not independent verification. Missing research, unsupported
+citations, incomplete patches, and uncertain blocking overlap require a maintainer.
+Research failures are not automatically evidence that a product is broken.
 
-## Files and responsibilities
+The collector does not parse entries, choose historical candidates, fetch product
+pages, or decide which alternatives Claude should consider. All submitted changes,
+including removals and non-README files, are visible to the agent. Only the model
+packet and exact request identity cross steps; there are no evidence archives,
+replay caches, or hypothetical API action plans.
 
-- [GitHub workflow](../../.github/workflows/um-pr-review.yml): trusted checkout,
-  one protected job for collection and review, followed by the report summary.
-- [Offline CI checks](../../.github/workflows/um-pr-review-checks.yml): tests on
-  ordinary PRs without provider secrets or a privileged PR context.
-- [UM workflow](workflow.yaml): the existing evidence-only agent review and
-  schema-validated `decision` JSON export.
-- `scripts/collect.py`: fork-specific PR evidence plus upstream submission history.
-- `scripts/public_http.py`: unauthenticated, public-IP-pinned HTTP(S) requests.
-- `scripts/ci.py`: event validation, freshness checks, preparation, report rendering.
-- `scripts/review.py`: pure evidence guards.
+## Runtime
 
-## Version contract
+The workflow uses `useful-machinery/run-action` at
+`3b5d29379bc349df8d95b29b599e71701aa1d017` with explicit `um-version: 0.72.1`,
+Claude Code `2.1.284`, model `claude-sonnet-5`, and medium effort.
+UM 0.57.0 rejected Claude's ToolSearch response during the live pilot; 0.72.1
+supports the tool interaction observed in the backtests.
 
-The run action is pinned to the verified public revision
-[`0572ca6153d1d030a1490d2f46298264aebd1cb3`](https://github.com/useful-machinery/run-action/tree/0572ca6153d1d030a1490d2f46298264aebd1cb3).
-That revision installs checksum-verified **UM 0.57.0**, not the local experiment's
-0.72.1. The workflow validates with 0.57.0. Claude Code is pinned to **2.1.284**,
-installed with the official native installer; no Node.js setup is needed.
-Other GitHub Actions are pinned to full commit SHAs.
+Claude is installed with its official native installer. There is no executable
+wrapper, custom tool restriction, or per-invocation dollar cap. The GitHub job has
+a 30-minute timeout, and newer events cancel an older run for the same PR.
 
-The [upstream action's native checks passed for this exact revision](https://github.com/useful-machinery/run-action/actions/runs/37415128498).
-The action's named Text input carries the prepared packet by file path, and its
-selected JSON export hands the result to the report step. No alternate direct UM
-CLI launcher is used by the GitHub workflow.
+The model receives the Anthropic key. The collection/report steps receive the
+read-only GitHub token. Claude can use public web tools and unauthenticated public
+API requests; it should report access/rate-limit failures honestly. The prompt
+forbids external changes and execution of submitted code. Normal agent tools are
+available; the prompt is not an execution sandbox.
 
-## Enable deliberately, after reviewing the code
+## Enable a fork trial
 
-These are future setup steps, not actions already performed:
+- Create the `awesome-testing-review` environment with required reviewers.
+- Add `ANTHROPIC_API_KEY` as an environment secret.
+- Set repository variable `UM_PR_REVIEW_ENABLED=true`.
+- Put the workflow on the fork's base branch, then open a non-draft test PR.
+- Approve the environment job and read the report in the Actions run summary.
 
-1. Review and land these files in the fork's default branch, `master`.
-   `pull_request_target` uses base-branch code, so a PR adding this integration
-   cannot exercise its own new review workflow. Do not switch checkout to the PR
-   head to work around this.
-2. In the fork, create an environment named `awesome-testing-review`. Configure
-   **required reviewers**, prevent self-review if appropriate, and restrict which
-   branches can use it. Merely naming an environment in YAML does not enforce
-   approval. Confirm the protection works before enabling the workflow.
-3. Add `ANTHROPIC_API_KEY` to that protected environment, not as a repository-wide
-   secret. This transmits public PR/repository evidence to Anthropic and permits
-   provider usage. Use a purpose-specific budget-limited key. No GitHub PAT or
-   write token is needed. Credential creation/configuration needs separate approval.
-4. Set repository variable `UM_PR_REVIEW_ENABLED=true`. Keep GitHub token
-   permissions read-only. The job requests only `contents: read` and
-   `pull-requests: read`.
-5. Open a small README-only test PR **against Brian's fork**. Approve the protected
-   environment job, read the report in the Actions run summary. Verify the
-   report's exact head SHA. No contributor-facing message will be sent.
-6. Set `UM_PR_REVIEW_ENABLED=false` to stop new model jobs. Cancel any already
-   running or pending job separately. Do not add auto-approval/publication until
-   that behavior and its permissions have been explicitly reviewed.
+Keep the token's `contents` and `pull-requests` permissions read-only. Set the
+opt-in variable to false to stop new runs; cancel running/pending jobs separately.
+The code accepts this fork and `TheJambo/awesome-testing`.
 
-## Evidence and safety
+## Files
 
-PR state is checked before collection, after collection, and after the model.
-Each check verifies repository, open/non-draft state, and **head and base SHA**.
-A change during collection stops the review; a change during the model run marks
-its report stale and requires human review. Environment approval happens before
-this job starts. PR content is never interpolated into shell commands or GitHub
-file-command outputs.
+- `workflow.yaml`: UM agent step and structured decision export.
+- `prompts/reviewer.md`: investigation task and reporting instructions.
+- `schemas/decision.json`: decision and research record format.
+- `scripts/collect.py`: exact repository context, without research heuristics.
+- `scripts/ci.py`: event identity, freshness checks, preparation, and rendering.
+- `scripts/review.py`: consistency checks on the agent's report.
 
-It searches the upstream list's fully paginated PR history rather than confusing
-fork PR numbers with upstream PR numbers. It keeps the existing prompt, JSON
-schema, current curator calibration, and URL citation allowlist. The public
-maintainer statements retained in `evidence/maintainer-precedents.json` carry
-source links and dates; they are a policy snapshot, not a live subscription.
-The target PR's own comments/reviews/outcome are not model inputs.
-
-The old experiment's `restqa/404-links` checker is **not run against arbitrary PR
-URLs** in this job. That checker did not enforce the network boundary needed for
-hostile PRs. This port replaces that check with bounded HTTP(S) GETs of every link
-in proposed entry lines, checks each DNS answer/redirect, and connects directly
-to an inspected public IP with normal TLS hostname verification. It rejects
-private, loopback, link-local, multicast, shared-address, and IPv6 transition
-destinations. Each request has a 35-second process deadline, five redirects, and
-a 512 KiB response cap (1 MiB for public GitHub README JSON). The network process
-receives no GitHub or provider credentials and ignores ambient proxies.
-
-This is **not identical to the old link-checker result**, and it does not establish
-that every existing README link works. The upstream `404-links.yml` is unchanged.
-Limits are ten proposed entries, twenty checked URLs, fifty changed files, and a
-512 KiB model packet. Missing or partial patches, extra prose, non-README changes,
-unrecognized removals, unavailable sources, failed checks, and unsupported
-citations require human review or stop preparation. New category headings and
-recognized entry updates remain supported. A model judgment is not a security
-boundary or a guarantee of curation quality.
-
-A blocking duplicate or coverage-overlap finding below high confidence always
-requires a maintainer, even if the model sets `humanReview=false`. Missing
-confidence also fails closed. The guard preserves the tentative recommendation
-and records why the comparison needs review. Report generation always applies
-the guard to the raw model result.
-
-The prompt requires decision-driving overlap concerns to be blocking `duplicate`
-findings, with a tentative comment and a clear maintainer question when uncertain.
-Advisory observations and high-confidence decisions retain their existing routing;
-all evidence, citation, link, and stale-PR checks remain in place. This conservative
-routing fix is ported from the contribution-review experiment's commit `c869d0f`.
-It is not evidence that model confidence is calibrated or that overlap accuracy
-has improved. The revised prompt still needs a controlled live evaluation.
-
-No raw Claude sessions, configuration directories, execution directories, API
-keys, or local experiment result archives are uploaded. Only the guarded review
-is displayed in the Actions summary. Summaries in a public repository are visible
-to people who can read the repository; submit public data only.
-
-## Local verification
-
-From the fork checkout:
+## Validation
 
 ```sh
 python3 -m unittest discover -s .um/awesome-testing/tests -v
-python3 -m py_compile .um/awesome-testing/scripts/*.py
-um workflow validate --source-root .um/awesome-testing --json \
-  .um/awesome-testing/workflow.yaml
-actionlint .github/workflows/um-pr-review.yml \
-  .github/workflows/um-pr-review-checks.yml
+um workflow validate --source-root .um/awesome-testing --json .um/awesome-testing/workflow.yaml
+actionlint .github/workflows/um-pr-review.yml .github/workflows/um-pr-review-checks.yml
 ```
 
-Use UM **0.57.0** for the compatibility check. Offline tests need only Python 3.12+
-and never call GitHub or a model. The live workflow also needs GitHub CLI, Python,
-and the pinned Claude harness; GitHub-hosted Ubuntu supplies `gh`.
-
-Verification completed locally on macOS ARM64:
-
-- 52 offline regression tests, including a mocked prepare-to-report pipeline,
-  changes during collection and model execution, and uncertain-overlap guards.
-- The earlier offline replay of 32 experiment cases routed 21 to a maintainer,
-  compared with 18 before the overlap guard. That historical result is unchanged;
-  this refactor removes hypothetical action plans and retains the decision guard.
-- Python compilation, actionlint 1.7.12 with shellcheck, and UM 0.57.0 validation.
-- Exact pinned run-action execution with a synthetic command-only workflow,
-  named Text packet, schema-validated JSON decision, and available export path.
-- Claude 2.1.284 installation/version, without authentication or provider requests.
-  The normal-agent configuration still needs a live hosted trial.
-- Hardened HTTP fetch of the public upstream GitHub repository.
-
-The command-only smoke test proves action input/export plumbing, **not** Claude's
-live structured-result behavior or GitHub-hosted event/environment/summary wiring.
-Those remain the first controlled fork trial after publication and explicit setup.
+The historical replay uses retained final-head diffs and live research. Target
+outcomes and discussions are withheld from the packet and forbidden by the prompt,
+but a live search can still reveal later information. Results must be audited and
+reported as retrospective comparisons, not blinded or historically frozen accuracy.
+The end-to-end GitHub-hosted trial remains separate from local UM backtesting.

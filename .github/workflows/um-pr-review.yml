@@ -47,11 +47,12 @@ jobs:
         run: test -n "$ANTHROPIC_API_KEY" || { echo 'Configure ANTHROPIC_API_KEY in the protected environment.'; exit 1; }
       - name: Run review
         id: um
-        uses: useful-machinery/run-action@0572ca6153d1d030a1490d2f46298264aebd1cb3
+        uses: useful-machinery/run-action@3b5d29379bc349df8d95b29b599e71701aa1d017
         with:
+          um-version: 0.72.1
           workflow: .um/awesome-testing/workflow.yaml
           source-root: .um/awesome-testing
-          execution-root: ${{ runner.temp }}/um-review-execution
+          execution-root: ${{ runner.temp }}/um-review-input
           export: decision
           inputs: >-
             {"packet":{"kind":"text","path":"${{ runner.temp }}/um-review-input/packet.json"}}

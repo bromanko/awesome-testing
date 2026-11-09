@@ -1,52 +1,40 @@
-"""Pure decision guards. Never performs I/O."""
+"""Consistency checks on an agent's research report; these do not verify its claims."""
+from copy import deepcopy
 import json
 import re
+from urllib.parse import urlsplit
 
-def evidence_urls(packet: dict) -> set[str]:
+
+def public_citation(url):
+    try:
+        parsed = urlsplit(url)
+        return parsed.scheme in {"http", "https"} and bool(parsed.hostname) and not parsed.username and not parsed.password
+    except ValueError:
+        return False
+
+
+def guard(packet, raw):
+    decision = deepcopy(raw)
+    reasons = list(packet.get("collectionWarnings", []))
+    research = decision.get("research", {})
+    sources = research.get("sources", [])
     known = {packet["pullRequest"]["url"], packet["rules"]["url"], packet["rules"]["readmeUrl"]}
-    known.update(item["url"] for item in packet["priorSubmissions"])
-    for item in packet["priorSubmissions"]:
-        known.update(entry["url"] for entry in item.get("proposedEntries", []))
-        known.update(comment["url"] for comment in item.get("ownerComments", []))
-    known.update(item["url"] for item in packet.get("maintainerPrecedents", []))
-    known.update(item["url"] for item in packet.get("currentCuratorPolicyEvidence", []))
-    known.update(item["url"] for item in packet.get("categoryEntries", []))
-    for item in packet["proposals"]:
-        known.add(item["url"])
-        known.update(match["url"] for match in item["existingMatches"])
-    for source in packet["sources"]:
-        known.update(source.get(key) for key in ("url", "finalUrl") if source.get(key))
-    known.update(row["url"] for row in packet["linkCheck"].get("results", []))
-    return known
-
-
-def guard(packet: dict, decision: dict) -> dict:
-    decision = json.loads(json.dumps(decision))
-    known = evidence_urls(packet)
+    known.update(re.findall(r'https?://[^\s"<>\\)]+', json.dumps(packet)))
+    known.update(source["url"] for source in sources if source.get("status") == "accessed" and public_citation(source.get("url", "")))
     citations = {url for finding in decision["findings"] for url in finding["evidence"]}
     citations.update(re.findall(r"\]\((https?://[^)]+)\)", decision["contributorComment"]))
-    reasons = []
-    if citations - known:
-        reasons.append("The model cited a URL absent from the evidence packet.")
-    if not packet["proposals"]:
-        reasons.append("No complete proposed entry was extracted.")
-    if packet.get("collectionWarnings"):
-        reasons.extend(packet["collectionWarnings"])
-    if not packet["linkCheck"].get("passed"):
-        reasons.append("The existing link check did not pass completely.")
-    for proposal in packet["proposals"]:
-        if not any(source.get("entryUrl") == proposal["url"] and source.get("excerpt")
-                   and source.get("status") == 200 for source in packet["sources"]):
-            reasons.append(f"No usable official-source evidence for {proposal['name']}.")
-    if decision["decision"] == "approve" and packet["deterministicFindings"]:
-        reasons.append("Approval conflicts with a deterministic contribution-rule finding.")
+    if any(not public_citation(url) for url in citations) or citations - known:
+        reasons.append("A decision citation has no accessed source in the research record or pinned context.")
+    if not research.get("historySearch") or not research.get("coverageComparison"):
+        reasons.append("The report does not explain the history search and coverage comparison.")
+    if not any(source.get("status") == "accessed" for source in sources):
+        reasons.append("The agent reports no accessed research sources.")
+    if research.get("limitations"):
+        reasons.append("The agent reports unresolved research limitations.")
     if decision["decision"] == "approve" and any(f["severity"] == "blocking" for f in decision["findings"]):
-        reasons.append("Approval conflicts with a blocking model finding.")
-    if decision.get("confidence") != "high" and any(
-            finding.get("kind") == "duplicate" and finding.get("severity") == "blocking"
-            for finding in decision["findings"]):
-        reasons.append("A blocking duplicate/coverage-overlap judgment is not high confidence; "
-                       "a maintainer must resolve the comparison before any action.")
+        reasons.append("Approval conflicts with a blocking finding.")
+    if decision.get("confidence") != "high" and any(f.get("kind") == "duplicate" and f["severity"] == "blocking" for f in decision["findings"]):
+        reasons.append("A blocking duplicate/coverage-overlap judgment needs a maintainer to resolve the uncertain comparison.")
     if reasons:
         decision["humanReview"] = True
     decision["guardReasons"] = reasons

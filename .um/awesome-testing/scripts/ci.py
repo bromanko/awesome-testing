@@ -50,54 +50,12 @@ def current_pr(request):
     return current if matches else None
 
 
-def edit_warnings(readme, proposals):
-    patch_text = readme.get("patch", "")
-    added = [line[1:] for line in patch_text.splitlines() if line.startswith("+") and not line.startswith("+++")]
-    removed = [line[1:] for line in patch_text.splitlines() if line.startswith("-") and not line.startswith("---")]
-    warnings = []
-    if "patch" not in readme or len(added) != readme.get("additions") or len(removed) != readme.get("deletions"):
-        warnings.append("GitHub's README patch may be incomplete; manual review required.")
-    represented = {entry["markdown"] for entry in proposals}
-    if any(line.strip() and line not in represented and not line.startswith("#") for line in added):
-        warnings.append("Added README prose or unsupported entry syntax requires human review.")
-    updated = {collect.normalized(entry["url"]) for entry in proposals if entry.get("changeKind") == "update"}
-    for line in removed:
-        if not line.strip():
-            continue
-        entries = collect.entries(line)
-        if not entries or collect.normalized(entries[0]["url"]) not in updated:
-            warnings.append("README removals outside recognized entry updates require human review.")
-            break
-    return warnings
-
-
 def prepare(event_file, output):
     request = request_from_event(json.loads(event_file.read_text()), collect.REPO)
     pr = current_pr(request)
     if pr is None:
         raise ValueError("Superseded PR event; no review is run")
-    # Search the original project's history even when testing in Brian's fork.
-    history = collect.pages(f"repos/{collect.UPSTREAM}/pulls?state=all")
-    packet, files = collect.collect(pr, history)
-    packet["collectionWarnings"] = []
-    readme = next(f for f in files if f["filename"] == "README.md")
-    packet["collectionWarnings"].extend(edit_warnings(readme, packet["proposals"]))
-    packet["readmeDiff"] = readme.get("patch", "")
-    if any(f["filename"] != "README.md" for f in files):
-        packet["collectionWarnings"].append("Non-README changes require human review.")
-    urls = sorted({url for item in packet["proposals"] for url in re.findall(r"\((https?://[^)]+)\)", item["markdown"])})
-    if len(urls) > 20:
-        raise ValueError("Too many submitted links; manual review required")
-    checks = []
-    for url in urls:
-        result = collect.fetch_source(url)
-        checks.append({"url": url, "status": result.get("status"),
-                       "passed": result.get("status") is not None and 200 <= result["status"] < 300,
-                       "error": result.get("error")})
-    packet["linkCheck"] = {"implementation": "bounded public-IP-pinned HTTP(S) GET",
-                           "scope": "HTTP(S) links in proposed entry lines only",
-                           "results": checks, "passed": bool(checks) and all(c["passed"] for c in checks)}
-    packet["allowedEvidenceUrls"] = sorted(review.evidence_urls(packet))
+    packet = collect.collect(pr)
     encoded = json.dumps(packet, ensure_ascii=False, indent=2).encode()
     if len(encoded) > MAX_PACKET:
         raise ValueError("Evidence packet exceeds 512 KiB; manual review required")
@@ -127,6 +85,12 @@ def render(packet, raw, current):
             "## Proposed contributor comment (untrusted model output)\n\n"
             f"{comment}\n\n## Guard reasons\n\n"
             + "\n".join("- " + html.escape(reason) for reason in decision["guardReasons"]) + "\n")
+    research = decision["research"]
+    body += "\n## Investigation\n\n" + html.escape(research.get("historySearch", "Not reported.")) + "\n\n" + html.escape(research.get("coverageComparison", "Not reported.")) + "\n\n"
+    for source in research.get("sources", []):
+        body += "- " + html.escape(source["url"]) + " — " + html.escape(source["status"]) + ": " + html.escape(source["observation"]) + "\n"
+    if research.get("limitations"):
+        body += "\n## Unresolved questions\n\n" + "\n".join("- " + html.escape(item) for item in research["limitations"]) + "\n"
     return decision, body
 
 

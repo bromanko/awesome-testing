@@ -3,33 +3,32 @@ import base64
 import copy
 import json
 from pathlib import Path
-import socket
 import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import ci
 import collect
-import public_http
 import review
 
 
 def packet():
     return dict(repository=collect.REPO, pullRequest=dict(number=7, url=f"https://github.com/{collect.REPO}/pull/7", headSha="a" * 40),
                 snapshot=dict(baseSha="b" * 40), rules=dict(url="https://example.com/rules", readmeUrl="https://example.com/list"),
-                priorSubmissions=[], categoryEntries=[], maintainerPrecedents=[], deterministicFindings=[],
-                proposals=[dict(name="Example", url="https://example.com/tool", markdown="- [Example](https://example.com/tool) - Tool.", existingMatches=[])],
-                sources=[dict(url="https://example.com/tool", entryUrl="https://example.com/tool", status=200, excerpt="Official description")],
-                linkCheck=dict(passed=True, results=[]))
+                baseReadme="# Tools", headReadme="# Tools\n- [Example](https://example.com/tool) - Tool.",
+                changes=[], collectionWarnings=[])
 
 
 def decision():
     return dict(decision="approve", humanReview=False, confidence="high", summary="Relevant tool.",
-                category="Tools", proposedEntry=None, findings=[], contributorComment="Looks relevant.")
+                category="Tools", proposedEntry=None, findings=[], contributorComment="Looks relevant.",
+                research=dict(sources=[dict(url="https://example.com/tool",status="accessed",observation="Official documentation describes the testing use case.")],
+                              historySearch="Searched the resource name and URL; no prior submission found.",
+                              coverageComparison="Compared the closest listed tool; this adds a distinct capability.",limitations=[]))
 
 
 def event():
@@ -44,12 +43,22 @@ class DecisionTests(unittest.TestCase):
         self.decision = decision()
 
 
-    def test_missing_official_source_blocks(self):
-        self.packet["sources"] = []
+    def test_agent_discovered_source_is_accepted(self):
+        self.decision["findings"] = [dict(evidence=["https://example.com/tool"], severity="advisory")]
+        self.assertFalse(review.guard(self.packet, self.decision)["humanReview"])
+
+    def test_readme_link_can_be_cited_as_pinned_context(self):
+        self.packet["baseReadme"] = "- [Existing](https://existing.example/tool) - Comparator."
+        self.decision["findings"] = [dict(evidence=["https://existing.example/tool"], severity="advisory")]
+        self.assertFalse(review.guard(self.packet, self.decision)["humanReview"])
+
+    def test_unavailable_source_cannot_support_a_finding(self):
+        self.decision["research"]["sources"][0]["status"] = "unavailable"
+        self.decision["findings"] = [dict(evidence=["https://example.com/tool"], severity="advisory")]
         self.assertTrue(review.guard(self.packet, self.decision)["humanReview"])
 
-    def test_failed_check_blocks(self):
-        self.packet["linkCheck"]["passed"] = False
+    def test_research_limitations_require_human_review(self):
+        self.decision["research"]["limitations"] = ["Could not establish the overlap."]
         self.assertTrue(review.guard(self.packet, self.decision)["humanReview"])
 
     def test_invented_citation_blocks(self):
@@ -60,9 +69,6 @@ class DecisionTests(unittest.TestCase):
         self.decision["contributorComment"] = "See [fake](https://invented.example/claim)."
         self.assertTrue(review.guard(self.packet, self.decision)["humanReview"])
 
-    def test_rule_failure_blocks_approval(self):
-        self.packet["deterministicFindings"] = ["Two suggestions in one PR"]
-        self.assertTrue(review.guard(self.packet, self.decision)["humanReview"])
 
     def duplicate_finding(self, severity="blocking"):
         return dict(kind="duplicate", severity=severity,
@@ -122,13 +128,10 @@ class DecisionTests(unittest.TestCase):
 
     def test_report_applies_existing_evidence_guards(self):
         cases = [
-            (dict(self.packet, proposals=[]), self.decision),
-            (dict(self.packet, sources=[]), self.decision),
-            (dict(self.packet, linkCheck=dict(passed=False, results=[])), self.decision),
             (dict(self.packet, collectionWarnings=["Incomplete patch"]), self.decision),
-            (dict(self.packet, deterministicFindings=["Two suggestions"]), self.decision),
             (self.packet, dict(self.decision, contributorComment="See [fake](https://invented.example/claim).")),
             (self.packet, dict(self.decision, findings=[self.duplicate_finding()])),
+            (self.packet, dict(self.decision, research={})),
         ]
         for evidence, raw in cases:
             with self.subTest(packet=evidence, decision=raw):
@@ -222,11 +225,8 @@ class EventTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "event.json").write_text(json.dumps(event()))
-            change = dict(filename="README.md", patch="+" + packet()["proposals"][0]["markdown"], additions=1, deletions=0)
             with patch.object(ci, "current_pr", side_effect=[event()["pull_request"], None]), \
-                 patch.object(collect, "pages", return_value=[]), \
-                 patch.object(collect, "collect", return_value=(packet(), [change])), \
-                 patch.object(collect, "fetch_source", return_value=dict(status=200)):
+                 patch.object(collect, "collect", return_value=packet()):
                 with self.assertRaisesRegex(ValueError, "changed during collection"):
                     ci.prepare(root / "event.json", root / "input")
             self.assertFalse((root / "input").exists())
@@ -258,108 +258,29 @@ class EventTests(unittest.TestCase):
             with self.assertRaises(ValueError): collect.github("repos/other/private/readme")
             run.assert_not_called()
 
-    def test_submitted_repo_fetch_never_uses_operator_auth(self):
-        with patch.object(collect, "fetch", return_value=dict(status=404, truncated=False)), patch.object(collect, "github") as authenticated:
-            with self.assertRaises(ValueError): collect.public_github_readme("owner/private")
-            authenticated.assert_not_called()
 
+class ContextTests(unittest.TestCase):
+    def context(self, changes):
+        pr = event()["pull_request"]
+        pr.update(title="Edit", body="Text", html_url="https://github.com/example/repo/pull/7")
+        return collect.assemble(pr, changes, "old README", "new README", "rules")
 
-class NetworkTests(unittest.TestCase):
-    def addresses(self, ip):
-        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, 443))]
+    def test_preserves_removals_prose_and_non_readme_changes(self):
+        changes = [dict(filename="README.md", patch="-old entry\n+new prose", additions=1, deletions=1),
+                   dict(filename="other.txt", patch="+extra", additions=1, deletions=0)]
+        context = self.context(changes)
+        self.assertEqual(context["changes"], changes)
+        self.assertEqual(context["baseReadme"], "old README")
+        self.assertEqual(context["headReadme"], "new README")
+        self.assertEqual(context["collectionWarnings"], [])
 
-    def test_non_public_addresses_rejected(self):
-        for ip in ("127.0.0.1", "10.1.1.1", "169.254.169.254", "100.64.0.1", "224.0.0.1", "::1", "fc00::1", "::ffff:127.0.0.1"):
-            with self.subTest(ip=ip), patch.object(public_http.socket, "getaddrinfo", return_value=self.addresses(ip)):
-                with self.assertRaisesRegex(ValueError, "Non-public"):
-                    public_http.destination("https://example.com")
+    def test_incomplete_patch_requires_review(self):
+        context = self.context([dict(filename="README.md", patch="+one", additions=2, deletions=0)])
+        self.assertTrue(review.guard(context, decision())["humanReview"])
 
-    def test_mixed_public_private_dns_rejected(self):
-        with patch.object(public_http.socket, "getaddrinfo", return_value=self.addresses("8.8.8.8") + self.addresses("127.0.0.1")):
-            with self.assertRaises(ValueError): public_http.destination("https://example.com")
-
-    def test_bad_urls_rejected_before_dns(self):
-        for url in ("file:///tmp/no", "http://user:pass@example.com", "https://example.com:8080", "https://example.com/\r\ninject", "https://example.com\\@localhost/"):
-            with self.subTest(url=url), patch.object(public_http.socket, "getaddrinfo") as dns:
-                with self.assertRaises(ValueError): public_http.destination(url)
-                dns.assert_not_called()
-
-    def test_fetch_connects_to_the_validated_address(self):
-        sock = MagicMock()
-        response = MagicMock(status=200)
-        response.getheader.return_value = None
-        response.read1.side_effect = [b"safe", b""]
-        connection = MagicMock(); connection.getresponse.return_value = response
-        with patch.object(public_http.socket, "getaddrinfo", return_value=self.addresses("8.8.8.8")) as dns, \
-             patch.object(public_http.socket, "socket", return_value=sock), \
-             patch.object(public_http.http.client, "HTTPConnection", return_value=connection):
-            result = public_http._fetch("http://example.com/")
-            self.assertEqual(result["content"], b"safe")
-            self.assertEqual(dns.call_count, 1)
-            sock.connect.assert_called_once_with(("8.8.8.8", 443))
-            self.assertIs(connection.sock, sock)
-            self.assertNotIn("Authorization", connection.request.call_args.kwargs["headers"])
-
-    def test_redirect_private_destination_is_rejected(self):
-        response = MagicMock(status=302); response.getheader.return_value = "http://127.0.0.1/"
-        connection = MagicMock(); connection.getresponse.return_value = response
-        with patch.object(public_http.socket, "getaddrinfo", side_effect=[self.addresses("8.8.8.8"), self.addresses("127.0.0.1")]), \
-             patch.object(public_http, "_connect"), patch.object(public_http.http.client, "HTTPConnection", return_value=connection):
-            with self.assertRaisesRegex(ValueError, "Non-public"):
-                public_http._fetch("http://example.com")
-
-    def test_size_limit_is_retained(self):
-        response = MagicMock(status=200); response.getheader.return_value = None; response.read1.return_value = b"12345"
-        connection = MagicMock(); connection.getresponse.return_value = response
-        with patch.object(public_http.socket, "getaddrinfo", return_value=self.addresses("8.8.8.8")), \
-             patch.object(public_http, "_connect"), patch.object(public_http.http.client, "HTTPConnection", return_value=connection):
-            result = public_http._fetch("http://example.com", limit=4)
-            self.assertEqual(result["content"], b"1234")
-            self.assertTrue(result["truncated"])
-
-    def test_process_deadline_bounds_dns_and_headers(self):
-        with patch.object(public_http.subprocess, "run", side_effect=subprocess.TimeoutExpired("fetch", 35)) as run:
-            with self.assertRaisesRegex(TimeoutError, "process deadline"):
-                public_http.fetch("https://example.com")
-            self.assertEqual(run.call_args.kwargs["timeout"], 35)
-
-    def test_fetch_process_does_not_inherit_credentials(self):
-        result = MagicMock(stdout=json.dumps(dict(status=200, contentBase64="", truncated=False)))
-        with patch.dict(public_http.os.environ, {"GH_TOKEN": "must-not-pass", "ANTHROPIC_API_KEY": "must-not-pass"}), patch.object(public_http.subprocess, "run", return_value=result) as run:
-            public_http.fetch("https://example.com")
-            env = run.call_args.kwargs["env"]
-            self.assertNotIn("GH_TOKEN", env)
-            self.assertNotIn("ANTHROPIC_API_KEY", env)
-
-
-class EditCoverageTests(unittest.TestCase):
-    def test_valid_addition_needs_no_warning(self):
-        p = packet()["proposals"]
-        change = dict(patch="+" + p[0]["markdown"], additions=1, deletions=0)
-        self.assertEqual(ci.edit_warnings(change, p), [])
-
-    def test_extra_prose_is_not_silently_approved(self):
-        p = packet()["proposals"]
-        change = dict(patch="+" + p[0]["markdown"] + "\n+New rules", additions=2, deletions=0)
-        self.assertTrue(ci.edit_warnings(change, p))
-
-    def test_removal_is_not_silently_approved(self):
-        p = packet()["proposals"]
-        change = dict(patch="+" + p[0]["markdown"] + "\n-## Existing category", additions=1, deletions=1)
-        self.assertTrue(ci.edit_warnings(change, p))
-
-    def test_recognized_description_update_needs_no_warning(self):
-        p = packet()["proposals"]; p[0]["changeKind"] = "update"
-        change = dict(patch="+" + p[0]["markdown"] + "\n-" + p[0]["markdown"].replace("Tool.", "Old."), additions=1, deletions=1)
-        self.assertEqual(ci.edit_warnings(change, p), [])
-
-    def test_new_category_is_allowed(self):
-        p = packet()["proposals"]
-        change = dict(patch="+## New category\n+" + p[0]["markdown"], additions=2, deletions=0)
-        self.assertEqual(ci.edit_warnings(change, p), [])
-
-    def test_truncated_removals_require_human_review(self):
-        self.assertTrue(ci.edit_warnings(dict(patch="", additions=0, deletions=1), []))
+    def test_missing_patch_requires_review(self):
+        context = self.context([dict(filename="README.md", additions=1, deletions=0)])
+        self.assertTrue(context["collectionWarnings"])
 
 
 class PipelineTests(unittest.TestCase):
@@ -370,7 +291,7 @@ class PipelineTests(unittest.TestCase):
             payload["pull_request"].update(title="Example", body="$(not executed)", closed_at=None,
                                          html_url=f"https://github.com/{collect.REPO}/pull/7")
             base = "# List\n## Tools\n"
-            addition = packet()["proposals"][0]["markdown"]
+            addition = "- [Example](https://example.com/tool) - Tool."
             change = dict(filename="README.md", patch="@@ -1 +1,2 @@\n+" + addition, additions=1, deletions=0)
             def github(endpoint):
                 if endpoint == f"repos/{collect.REPO}/pulls/7":
@@ -386,14 +307,14 @@ class PipelineTests(unittest.TestCase):
                     return dict(content=base64.b64encode(b"One suggestion per PR.").decode())
                 raise AssertionError(f"Unexpected API call: {endpoint}")
             (root / "event.json").write_text(json.dumps(payload))
-            with patch.object(collect, "github", side_effect=github) as api, \
-                 patch.object(collect, "fetch", return_value=dict(status=200, finalUrl="https://example.com/tool", contentType="text/plain", truncated=False, content=b"Official description")):
+            with patch.object(collect, "github", side_effect=github) as api:
                 ci.prepare(root / "event.json", root / "input")
                 data = json.loads((root / "input/packet.json").read_text())
                 self.assertEqual(data["repository"], collect.REPO)
-                self.assertTrue(data["linkCheck"]["passed"])
+                self.assertEqual(data["baseReadme"], base)
+                self.assertEqual(data["headReadme"], base + addition + "\n")
                 self.assertEqual(data["collectionWarnings"], [])
-                self.assertIn("readmeDiff", data)
+                self.assertEqual(data["changes"][0]["patch"], change["patch"])
                 (root / "decision.json").write_text(json.dumps(decision()))
                 ci.finish(root / "input", root / "decision.json", root / "report")
                 report = (root / "report/review.md").read_text()
@@ -403,24 +324,6 @@ class PipelineTests(unittest.TestCase):
                 self.assertEqual(sorted(p.name for p in root.iterdir()), ["decision.json", "event.json", "input", "report"])
                 self.assertEqual(sorted(p.name for p in (root / "report").iterdir()),
                                  ["decision.json", "review.md"])
-
-
-class HistoryTests(unittest.TestCase):
-    def test_name_variants_exclude_future_history(self):
-        proposals = [dict(name="BestJSON JSON Diff", url="https://bestjson.com/json-diff")]
-        history = [dict(number=1, title="Add JSON Diff", body="", created_at="2020-01-01", html_url="https://github.com/example/1"),
-                   dict(number=2, title="Add JSON Diff", body="", created_at="2022-01-01", html_url="https://github.com/example/2")]
-        self.assertEqual([item["number"] for item in collect.historical_matches(proposals, history, 7, "2021-01-01")], [1])
-
-    def test_name_does_not_match_inside_frontend_testing(self):
-        proposals = [dict(name="Endtest", url="https://endtest.io")]
-        history = [dict(number=1, title="Frontend testing", body="End testing problems.", created_at="2020-01-01", html_url="https://github.com/example/1")]
-        self.assertEqual(collect.historical_matches(proposals, history, 7, "2021-01-01"), [])
-
-    def test_prior_context_uses_upstream_not_fork_numbers(self):
-        with patch.object(collect, "pages", return_value=[]) as pages:
-            collect.prior_context([dict(number=1)], [dict(number=1, closed_at=None, merged_at=None, updated_at="2020-01-01")], "2021-01-01")
-            self.assertTrue(all("repos/TheJambo/awesome-testing/" in args.args[0] for args in pages.call_args_list))
 
 
 if __name__ == "__main__":

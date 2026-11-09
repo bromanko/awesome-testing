@@ -1,5 +1,5 @@
 schemaVersion: 1
-description: Evidence-only contribution review for awesome-testing pull requests; never writes to GitHub.
+description: Agent-led contribution review for awesome-testing pull requests; never writes to GitHub.
 
 inputs:
   packet:
@@ -14,7 +14,7 @@ agentProfiles:
       kind: claude_code
       config:
         model: claude-sonnet-5
-        effort: low
+        effort: medium
 
 steps:
   review:
