@@ -13,14 +13,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  collect:
+  review:
     if: >-
       vars.UM_PR_REVIEW_ENABLED == 'true' &&
       github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
+    environment: awesome-testing-review
     steps:
-      - name: Check out trusted base automation, never PR code
+      - name: Check out base branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.pull_request.base.sha }}
@@ -28,7 +29,7 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
-      - name: Collect bounded public evidence
+      - name: Collect PR evidence
         env:
           GH_TOKEN: ${{ github.token }}
           UM_REVIEW_WORK: ${{ runner.temp }}/um-review-collection
@@ -36,38 +37,12 @@ jobs:
           python3 .um/awesome-testing/scripts/ci.py prepare
           --event-file "$GITHUB_EVENT_PATH"
           --output "$RUNNER_TEMP/um-review-input"
-      - name: Retain only the model packet and exact PR identity
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: um-review-input-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/um-review-input/
-          retention-days: 1
-          if-no-files-found: error
-
-  review:
-    needs: collect
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    environment: awesome-testing-review
-    steps:
-      - name: Check out the same trusted base automation
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: '24'
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
-        with:
-          python-version: '3.12'
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          name: um-review-input-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/um-review-input
-      - name: Install the harness qualified for UM 0.57.0
-        run: npm install --global --no-audit --no-fund @anthropic-ai/claude-code@2.1.284
-      - name: Prepare isolated tool-free harness
+      - name: Install Claude
+        shell: bash
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash -s 2.1.284
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Configure Claude
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/um-review-execution/bin" "$RUNNER_TEMP/um-review-claude"
@@ -76,17 +51,17 @@ jobs:
           cp .um/awesome-testing/bin/claude "$RUNNER_TEMP/um-review-execution/bin/claude"
           chmod +x "$RUNNER_TEMP/um-review-execution/bin/claude"
           printf '%s\n' "$RUNNER_TEMP/um-review-execution/bin" >> "$GITHUB_PATH"
-      - name: Recheck the exact open PR after environment approval
+      - name: Check PR is current
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
           python3 .um/awesome-testing/scripts/ci.py check-current
           --input-dir "$RUNNER_TEMP/um-review-input"
-      - name: Require the explicitly configured provider key
+      - name: Check API key
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: test -n "$ANTHROPIC_API_KEY" || { echo 'Configure ANTHROPIC_API_KEY in the protected environment.'; exit 1; }
-      - name: Run the contribution-review workflow through UM
+      - name: Run review
         id: um
         uses: useful-machinery/run-action@0572ca6153d1d030a1490d2f46298264aebd1cb3
         with:
@@ -99,7 +74,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_CONFIG_DIR: ${{ runner.temp }}/um-review-claude
-      - name: Guard the result and render a dry-run preview
+      - name: Prepare report
         if: steps.um.outputs.export-state == 'available'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -109,7 +84,7 @@ jobs:
           --input-dir "$RUNNER_TEMP/um-review-input"
           --decision-file "$DECISION_PATH"
           --output "$RUNNER_TEMP/um-review-report"
-      - name: Upload the preview, never raw agent logs or configuration
+      - name: Upload report
         if: steps.um.outputs.export-state == 'available'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -117,7 +92,7 @@ jobs:
           path: ${{ runner.temp }}/um-review-report/
           retention-days: 7
           if-no-files-found: error
-      - name: Summarize the read-only outcome
+      - name: Summarize result
         if: always()
         run: |
           printf '%s\n' '## UM contribution review' 'Dry-run only. No PR comment, review, approval, closure, or merge is submitted.' 'Download the report artifact for the proposed decision and comment, or inspect the failed step.' >> "$GITHUB_STEP_SUMMARY"

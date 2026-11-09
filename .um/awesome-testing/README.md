@@ -21,12 +21,12 @@ A hosted GitHub run and live model trial remain unverified.
   concurrency cancels an older run for the same PR; it is not a global spend cap.
 - Reports: `review.md`, `decision.json`, `action-plan.json`, and the exact PR
   identity. The action plan is explicitly hypothetical. Artifact retention is
-  seven days; the public evidence input artifact is retained for one day.
+  seven days. The evidence packet stays on the runner and is passed between steps as a local file.
 
 ## Files and responsibilities
 
 - [GitHub workflow](../../.github/workflows/um-pr-review.yml): trusted checkout,
-  bounded collection job, protected model job, artifact upload.
+  one protected job for collection and review, followed by report upload.
 - [Offline CI checks](../../.github/workflows/um-pr-review-checks.yml): tests on
   ordinary PRs without provider secrets or a privileged PR context.
 - [UM workflow](workflow.yaml): the existing evidence-only agent review and
@@ -44,8 +44,7 @@ The run action is pinned to the verified public revision
 [`0572ca6153d1d030a1490d2f46298264aebd1cb3`](https://github.com/useful-machinery/run-action/tree/0572ca6153d1d030a1490d2f46298264aebd1cb3).
 That revision installs checksum-verified **UM 0.57.0**, not the local experiment's
 0.72.1. The workflow validates with 0.57.0. Claude Code is pinned to **2.1.284**,
-the qualified harness for that release. Its official npm installation script is
-needed to provision the platform-native executable; do not add `--ignore-scripts`.
+installed with the official native installer; no Node.js setup is needed.
 Other GitHub Actions are pinned to full commit SHAs.
 
 The [upstream action's native checks passed for this exact revision](https://github.com/useful-machinery/run-action/actions/runs/37415128498).
@@ -80,15 +79,11 @@ These are future setup steps, not actions already performed:
    running or pending job separately. Do not add auto-approval/publication until
    that behavior and its permissions have been explicitly reviewed.
 
-The workflow's repository gate intentionally blocks execution in the upstream
-repository or another fork. Moving beyond Brian's fork requires a deliberate code
-and permission review.
-
 ## Evidence and safety
 
 The collector checks repository, PR number, open/non-draft state, **head and base
-SHA** before collecting, after collecting, immediately before the model (after
-human environment approval), and after the model. Stale reports require human
+SHA** before collecting, after collecting, immediately before the model, and after the model. Environment approval happens
+before the combined job starts. Stale reports require human
 review and contain no hypothetical requests. PR content is never interpolated
 into shell commands or GitHub file-command outputs.
 
