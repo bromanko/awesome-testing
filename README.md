@@ -52,6 +52,7 @@ Finally, I'm sure everyone who reads this list has one thing they want to add. P
 - [Bifurc](https://github.com/HarshalKudale/bifurc) - Local-first API client, mock server and traffic proxy for macOS, Windows and Linux, with a CLI for CI.
 
 ### Security Testing
+- [DeepfakeHTTP](https://github.com/xnbox/DeepfakeHTTP) - Web server using HTTP dumps as responses for API testing.
 - [BeEF](http://beefproject.com/) - Manipulate the browser by exploiting any XSS vulnerabilities you find.
 - [OWASP ZAP](https://github.com/zaproxy/zaproxy) - Intercepting proxy for HTTP traffic manipulation, security scanning, and exploitation.
 - [BurpSuite](https://portswigger.net/burp/communitydownload) - Intercept API and Reply with changes in realtime with according api manipulations.
