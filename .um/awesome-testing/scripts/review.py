@@ -1,7 +1,6 @@
-"""Pure decision guards and hypothetical action plans. Never performs I/O."""
+"""Pure decision guards. Never performs I/O."""
 import json
 import re
-from collect import REPO
 
 def evidence_urls(packet: dict) -> set[str]:
     known = {packet["pullRequest"]["url"], packet["rules"]["url"], packet["rules"]["readmeUrl"]}
@@ -52,38 +51,3 @@ def guard(packet: dict, decision: dict) -> dict:
         decision["humanReview"] = True
     decision["guardReasons"] = reasons
     return decision
-
-
-def action_plan(packet: dict, decision: dict, current_state: str) -> dict:
-    # Keep the action boundary safe even when a caller passes a raw model result.
-    decision = guard(packet, decision)
-    pr = packet["pullRequest"]
-    marker = f"<!-- awesome-testing-review:{pr['headSha']} -->"
-    body = decision["contributorComment"].strip() + "\n\n" + marker
-    repository = packet.get("repository", REPO)
-    prefix = f"https://api.github.com/repos/{repository}"
-    requests = []
-    if not decision["humanReview"]:
-        if decision["decision"] in {"approve", "request_changes"}:
-            requests.append(dict(method="POST", url=f"{prefix}/pulls/{pr['number']}/reviews",
-                                 json=dict(commit_id=pr["headSha"], body=body,
-                                           event="APPROVE" if decision["decision"] == "approve" else "REQUEST_CHANGES")))
-        else:
-            requests.extend([
-                dict(method="POST", url=f"{prefix}/issues/{pr['number']}/comments", json=dict(body=body)),
-                dict(method="PATCH", url=f"{prefix}/pulls/{pr['number']}", json=dict(state="closed")),
-            ])
-    return dict(mode="dry-run", repository=repository, pullRequest=pr["number"], headSha=pr["headSha"],
-                decision=decision["decision"], humanReview=decision["humanReview"],
-                currentState=current_state, externalChangesPerformed=0,
-                hypotheticalRequests=requests,
-                preflightReads=[f"{prefix}/pulls/{pr['number']}",
-                                f"{prefix}/pulls/{pr['number']}/reviews",
-                                f"{prefix}/issues/{pr['number']}/comments"],
-                requiredPreconditions=["PR is open and not draft", "head SHA still matches this exact review",
-                                       "No existing review/comment for this head SHA and marker",
-                                       "Dedicated bot has repository write permission and is not PR author",
-                                       "All relevant check results remain current for the same head"],
-                wouldExecuteNow=False,
-                executionBlockedBecause="Spike deliberately has no GitHub write executor; full-auto is design only.",
-                mergePolicy="Approval submits an APPROVE review only; merging is outside this spike's design.")

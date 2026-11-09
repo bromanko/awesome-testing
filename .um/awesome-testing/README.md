@@ -20,10 +20,11 @@ A hosted GitHub run and live model trial remain unverified.
   through UM with its normal tools. There is no per-invocation dollar cap.
   Repeated PR events can incur repeated charges after enablement. Workflow
   concurrency cancels an older run for the same PR; it is not a global spend cap.
-- Reports: `review.md`, `decision.json`, `action-plan.json`, and the exact PR
-  identity are generated locally on the runner. The action plan is explicitly
-  hypothetical. The review is displayed directly in the Actions run summary;
-  no report artifacts are uploaded. The evidence packet stays on the runner.
+- Reports: `review.md` and `decision.json` are generated on the runner. The review
+  is displayed directly in the Actions run summary; no report artifacts are
+  uploaded. Only the model packet and exact PR identity are saved between steps.
+  Collection passes intermediate data in memory and fetches prior submissions
+  directly, without replay caches.
 
 ## Files and responsibilities
 
@@ -36,7 +37,7 @@ A hosted GitHub run and live model trial remain unverified.
 - `scripts/collect.py`: fork-specific PR evidence plus upstream submission history.
 - `scripts/public_http.py`: unauthenticated, public-IP-pinned HTTP(S) requests.
 - `scripts/ci.py`: event validation, freshness checks, preparation, report rendering.
-- `scripts/review.py`: pure evidence guards and hypothetical request descriptions.
+- `scripts/review.py`: pure evidence guards.
 
 ## Version contract
 
@@ -80,11 +81,12 @@ These are future setup steps, not actions already performed:
 
 ## Evidence and safety
 
-The collector checks repository, PR number, open/non-draft state, **head and base
-SHA** before collecting, after collecting, immediately before the model, and after the model. Environment approval happens
-before the combined job starts. Stale reports require human
-review and contain no hypothetical requests. PR content is never interpolated
-into shell commands or GitHub file-command outputs.
+PR state is checked before collection, after collection, and after the model.
+Each check verifies repository, open/non-draft state, and **head and base SHA**.
+A change during collection stops the review; a change during the model run marks
+its report stale and requires human review. Environment approval happens before
+this job starts. PR content is never interpolated into shell commands or GitHub
+file-command outputs.
 
 It searches the upstream list's fully paginated PR history rather than confusing
 fork PR numbers with upstream PR numbers. It keeps the existing prompt, JSON
@@ -115,9 +117,8 @@ boundary or a guarantee of curation quality.
 A blocking duplicate or coverage-overlap finding below high confidence always
 requires a maintainer, even if the model sets `humanReview=false`. Missing
 confidence also fails closed. The guard preserves the tentative recommendation
-and records why the comparison needs review. It runs again when building the
-action plan, so callers cannot bypass it by passing a raw model result. Such
-reports contain no hypothetical comment, review, or close requests.
+and records why the comparison needs review. Report generation always applies
+the guard to the raw model result.
 
 The prompt requires decision-driving overlap concerns to be blocking `duplicate`
 findings, with a tentative comment and a clear maintainer question when uncertain.
@@ -151,12 +152,11 @@ and the pinned Claude harness; GitHub-hosted Ubuntu supplies `gh`.
 
 Verification completed locally on macOS ARM64:
 
-- 54 offline regression tests, including a mocked prepare-to-report pipeline and
-  uncertain-overlap guards at the decision, raw action-plan, and CI report boundaries.
-- Offline replay of all 32 retained experiment cases through the ported guard:
-  maintainer routes increased from 18 to 21. Endtest (Opus low) and Persqo (Opus low
-  and high) now emit zero hypothetical requests; the other 29 routes and request
-  counts are unchanged. No model calls, source refreshes, or archive edits occurred.
+- 52 offline regression tests, including a mocked prepare-to-report pipeline,
+  changes during collection and model execution, and uncertain-overlap guards.
+- The earlier offline replay of 32 experiment cases routed 21 to a maintainer,
+  compared with 18 before the overlap guard. That historical result is unchanged;
+  this refactor removes hypothetical action plans and retains the decision guard.
 - Python compilation, actionlint 1.7.12 with shellcheck, and UM 0.57.0 validation.
 - Exact pinned run-action execution with a synthetic command-only workflow,
   named Text packet, schema-validated JSON decision, and available export path.

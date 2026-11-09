@@ -43,22 +43,6 @@ class DecisionTests(unittest.TestCase):
         self.packet = packet()
         self.decision = decision()
 
-    def test_approval_is_a_preview_for_the_fork_and_exact_head(self):
-        plan = review.action_plan(self.packet, self.decision, "open")
-        self.assertFalse(plan["wouldExecuteNow"])
-        self.assertEqual(plan["externalChangesPerformed"], 0)
-        self.assertEqual(plan["hypotheticalRequests"][0]["json"]["commit_id"], "a" * 40)
-        self.assertIn(collect.REPO, plan["hypotheticalRequests"][0]["url"])
-        self.assertTrue(all("/merge" not in item["url"] for item in plan["hypotheticalRequests"]))
-
-    def test_human_review_has_no_action_requests(self):
-        for value in ("approve", "request_changes", "reject"):
-            d = dict(self.decision, decision=value, humanReview=True)
-            self.assertEqual(review.action_plan(self.packet, d, "open")["hypotheticalRequests"], [])
-
-    def test_rejection_plan_retains_comment_before_close(self):
-        rows = review.action_plan(self.packet, dict(self.decision, decision="reject"), "open")["hypotheticalRequests"]
-        self.assertEqual([row["method"] for row in rows], ["POST", "PATCH"])
 
     def test_missing_official_source_blocks(self):
         self.packet["sources"] = []
@@ -98,25 +82,14 @@ class DecisionTests(unittest.TestCase):
                     self.assertTrue(guarded["humanReview"])
                     self.assertEqual(guarded["decision"], recommendation)
                     self.assertTrue(any("coverage-overlap" in reason for reason in guarded["guardReasons"]))
-                    self.assertEqual(review.action_plan(self.packet, guarded, "open")["hypotheticalRequests"], [])
                     self.assertEqual(raw, original)
 
-    def test_action_plan_guards_raw_uncertain_overlap(self):
-        raw = dict(self.decision, decision="reject", confidence="medium",
-                   findings=[self.duplicate_finding()])
-        plan = review.action_plan(self.packet, raw, "open")
-        self.assertTrue(plan["humanReview"])
-        self.assertEqual(plan["hypotheticalRequests"], [])
-        self.assertFalse(plan["wouldExecuteNow"])
-        self.assertEqual(plan["externalChangesPerformed"], 0)
 
     def test_high_confidence_duplicate_keeps_existing_rejection_preview(self):
         raw = dict(self.decision, decision="reject", findings=[self.duplicate_finding()])
         guarded = review.guard(self.packet, raw)
         self.assertFalse(guarded["humanReview"])
         self.assertEqual(guarded["guardReasons"], [])
-        self.assertEqual([row["method"] for row in review.action_plan(self.packet, raw, "open")["hypotheticalRequests"]],
-                         ["POST", "PATCH"])
 
     def test_nonblocking_duplicate_and_unrelated_fixes_are_not_newly_blocked(self):
         for finding in (self.duplicate_finding("advisory"),
@@ -126,7 +99,6 @@ class DecisionTests(unittest.TestCase):
                 raw = dict(self.decision, decision="request_changes", confidence="medium", findings=[finding])
                 guarded = review.guard(self.packet, raw)
                 self.assertFalse(guarded["humanReview"])
-                self.assertEqual(len(review.action_plan(self.packet, raw, "open")["hypotheticalRequests"]), 1)
 
     def test_guard_is_idempotent_and_preserves_model_human_review(self):
         raw = dict(self.decision, decision="reject", humanReview=True, confidence="medium", findings=[self.duplicate_finding()])
@@ -141,16 +113,14 @@ class DecisionTests(unittest.TestCase):
                 raw = dict(self.decision, decision=recommendation, confidence="medium",
                            findings=[self.duplicate_finding()])
                 original = copy.deepcopy(raw)
-                guarded, plan, report = ci.render(self.packet, raw, True)
+                guarded, report = ci.render(self.packet, raw, True)
                 self.assertTrue(guarded["humanReview"])
                 self.assertEqual(guarded["decision"], recommendation)
-                self.assertTrue(plan["humanReview"])
-                self.assertEqual(plan["hypotheticalRequests"], [])
                 self.assertIn("Human review required: **True**", report)
                 self.assertIn("coverage-overlap", report)
                 self.assertEqual(raw, original)
 
-    def test_raw_action_plan_applies_existing_evidence_guards(self):
+    def test_report_applies_existing_evidence_guards(self):
         cases = [
             (dict(self.packet, proposals=[]), self.decision),
             (dict(self.packet, sources=[]), self.decision),
@@ -162,19 +132,17 @@ class DecisionTests(unittest.TestCase):
         ]
         for evidence, raw in cases:
             with self.subTest(packet=evidence, decision=raw):
-                plan = review.action_plan(evidence, raw, "open")
-                self.assertTrue(plan["humanReview"])
-                self.assertEqual(plan["hypotheticalRequests"], [])
+                guarded, report = ci.render(evidence, raw, True)
+                self.assertTrue(guarded["humanReview"])
 
     def test_partial_patch_blocks_every_decision(self):
         self.packet["collectionWarnings"] = ["Incomplete patch"]
         for value in ("approve", "request_changes", "reject"):
             self.assertTrue(review.guard(self.packet, dict(self.decision, decision=value))["humanReview"])
 
-    def test_stale_report_has_no_proposed_actions(self):
-        guarded, plan, report = ci.render(self.packet, self.decision, False)
+    def test_stale_report_requires_human_review(self):
+        guarded, report = ci.render(self.packet, self.decision, False)
         self.assertTrue(guarded["humanReview"])
-        self.assertEqual(plan["hypotheticalRequests"], [])
         self.assertIn("stale", report)
 
     def test_render_does_not_mutate_model_output(self):
@@ -184,7 +152,7 @@ class DecisionTests(unittest.TestCase):
 
     def test_html_is_escaped_in_report(self):
         self.decision["contributorComment"] = "<img src=x>"
-        self.assertIn("&lt;img", ci.render(self.packet, self.decision, True)[2])
+        self.assertIn("&lt;img", ci.render(self.packet, self.decision, True)[1])
 
     def test_invalid_decision_rejected(self):
         with self.assertRaises(ValueError):
@@ -235,27 +203,52 @@ class EventTests(unittest.TestCase):
     def test_changed_head_fails_freshness(self):
         current = event()["pull_request"]; current["head"]["sha"] = "c" * 40
         with patch.object(collect, "github", return_value=current):
-            self.assertFalse(ci.fresh(ci.request_from_event(event(), collect.REPO)))
+            self.assertFalse(ci.current_pr(ci.request_from_event(event(), collect.REPO)))
 
     def test_changed_base_fails_freshness(self):
         current = event()["pull_request"]; current["base"]["sha"] = "c" * 40
         with patch.object(collect, "github", return_value=current):
-            self.assertFalse(ci.fresh(ci.request_from_event(event(), collect.REPO)))
+            self.assertFalse(ci.current_pr(ci.request_from_event(event(), collect.REPO)))
 
     def test_stale_prepare_does_not_collect(self):
         with tempfile.TemporaryDirectory() as directory:
             file = Path(directory) / "event.json"; file.write_text(json.dumps(event()))
-            with patch.object(ci, "fresh", return_value=False), patch.object(collect, "collect") as gather:
+            with patch.object(ci, "current_pr", return_value=None), patch.object(collect, "collect") as gather:
                 with self.assertRaisesRegex(ValueError, "Superseded"):
                     ci.prepare(file, Path(directory) / "input")
                 gather.assert_not_called()
 
-    def test_mismatched_artifact_identity_rejected_before_api(self):
+    def test_changed_pr_during_collection_does_not_publish_packet(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "event.json").write_text(json.dumps(event()))
+            change = dict(filename="README.md", patch="+" + packet()["proposals"][0]["markdown"], additions=1, deletions=0)
+            with patch.object(ci, "current_pr", side_effect=[event()["pull_request"], None]), \
+                 patch.object(collect, "pages", return_value=[]), \
+                 patch.object(collect, "collect", return_value=(packet(), [change])), \
+                 patch.object(collect, "fetch_source", return_value=dict(status=200)):
+                with self.assertRaisesRegex(ValueError, "changed during collection"):
+                    ci.prepare(root / "event.json", root / "input")
+            self.assertFalse((root / "input").exists())
+
+    def test_changed_pr_after_model_is_reported_as_stale(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "packet.json").write_text(json.dumps(packet()))
+            (root / "request.json").write_text(json.dumps(ci.request_from_event(event(), collect.REPO)))
+            (root / "decision.json").write_text(json.dumps(decision()))
+            with patch.object(ci, "current_pr", return_value=None):
+                ci.finish(root, root / "decision.json", root / "report")
+            result = json.loads((root / "report/decision.json").read_text())
+            self.assertTrue(result["humanReview"])
+            self.assertIn("stale", (root / "report/review.md").read_text())
+
+    def test_mismatched_packet_identity_rejected_before_api(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); p = packet(); p["pullRequest"]["headSha"] = "c" * 40
             (root / "packet.json").write_text(json.dumps(p))
             (root / "request.json").write_text(json.dumps(ci.request_from_event(event(), collect.REPO)))
-            with patch.object(ci, "fresh") as api:
+            with patch.object(ci, "current_pr") as api:
                 with self.assertRaisesRegex(ValueError, "identity"):
                     ci.finish(root, root / "decision.json", root / "out")
                 api.assert_not_called()
@@ -393,7 +386,7 @@ class PipelineTests(unittest.TestCase):
                     return dict(content=base64.b64encode(b"One suggestion per PR.").decode())
                 raise AssertionError(f"Unexpected API call: {endpoint}")
             (root / "event.json").write_text(json.dumps(payload))
-            with patch.object(collect, "EVIDENCE", root / "evidence"), patch.object(collect, "github", side_effect=github), \
+            with patch.object(collect, "github", side_effect=github) as api, \
                  patch.object(collect, "fetch", return_value=dict(status=200, finalUrl="https://example.com/tool", contentType="text/plain", truncated=False, content=b"Official description")):
                 ci.prepare(root / "event.json", root / "input")
                 data = json.loads((root / "input/packet.json").read_text())
@@ -403,12 +396,13 @@ class PipelineTests(unittest.TestCase):
                 self.assertIn("readmeDiff", data)
                 (root / "decision.json").write_text(json.dumps(decision()))
                 ci.finish(root / "input", root / "decision.json", root / "report")
-                plan = json.loads((root / "report/action-plan.json").read_text())
-                self.assertEqual(plan["externalChangesPerformed"], 0)
-                self.assertFalse(plan["wouldExecuteNow"])
+                report = (root / "report/review.md").read_text()
+                self.assertIn("Decision: **approve**", report)
+                self.assertIn("a" * 40, report)
+                self.assertEqual(sum(call.args[0] == f"repos/{collect.REPO}/pulls/7" for call in api.call_args_list), 3)
+                self.assertEqual(sorted(p.name for p in root.iterdir()), ["decision.json", "event.json", "input", "report"])
                 self.assertEqual(sorted(p.name for p in (root / "report").iterdir()),
-                                 ["action-plan.json", "decision.json", "request.json", "review.md"])
-
+                                 ["decision.json", "review.md"])
 
 
 class HistoryTests(unittest.TestCase):
@@ -424,7 +418,7 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(collect.historical_matches(proposals, history, 7, "2021-01-01"), [])
 
     def test_prior_context_uses_upstream_not_fork_numbers(self):
-        with tempfile.TemporaryDirectory() as directory, patch.object(collect, "EVIDENCE", Path(directory)), patch.object(collect, "pages", return_value=[]) as pages:
+        with patch.object(collect, "pages", return_value=[]) as pages:
             collect.prior_context([dict(number=1)], [dict(number=1, closed_at=None, merged_at=None, updated_at="2020-01-01")], "2021-01-01")
             self.assertTrue(all("repos/TheJambo/awesome-testing/" in args.args[0] for args in pages.call_args_list))
 

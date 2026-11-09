@@ -19,7 +19,6 @@ REPO = os.environ.get("GITHUB_REPOSITORY", "bromanko/awesome-testing")
 if REPO not in {"bromanko/awesome-testing", UPSTREAM}:
     raise ValueError("Unsupported repository")
 ROOT = Path(__file__).resolve().parents[1]
-EVIDENCE = Path(os.environ.get("UM_REVIEW_WORK", str(ROOT / "work"))) / "evidence"
 ENTRY = re.compile(r"^\s*[-*]\s+\[([^\]]+)\]\((https?://[^\s)]+)\)\s*-?\s*(.*)$")
 
 
@@ -93,15 +92,13 @@ def public_url(url: str) -> None:
     destination(url)
 
 
-def fetch_source(url: str, destination_path: Path) -> dict:
+def fetch_source(url: str) -> dict:
     result = dict(url=url, fetchedAt=datetime.now(timezone.utc).isoformat())
     try:
         response = dict(fetch(url))
         content = response.pop("content")
         result.update(response)
-        destination_path.parent.mkdir(parents=True, exist_ok=True)
-        destination_path.write_bytes(content)
-        result.update(sha256=hashlib.sha256(content).hexdigest(), file=destination_path.name)
+        result.update(sha256=hashlib.sha256(content).hexdigest())
         text = content.decode("utf-8", errors="replace")
         text = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", text, flags=re.S | re.I)
         text = re.sub(r"<[^>]+>", " ", text)
@@ -129,24 +126,17 @@ def prior_context(candidates: list[dict], history: list[dict], cutoff: str) -> l
     indexed = {row["number"]: row for row in history}
     for candidate in candidates[:5]:
         number = candidate["number"]
-        folder = EVIDENCE / "prior-submissions" / str(number)
-        folder.mkdir(parents=True, exist_ok=True)
-        cached_case = EVIDENCE / "cases" / str(number)
-        for filename, endpoint in (("files.json", f"repos/{UPSTREAM}/pulls/{number}/files"),
-                                   ("comments.json", f"repos/{UPSTREAM}/issues/{number}/comments")):
-            cache = folder / filename
-            original = cached_case / ("outcome-comments.json" if filename == "comments.json" else filename)
-            if not cache.exists():
-                write_json(cache, json.loads(original.read_text()) if original.exists() else pages(endpoint))
+        files = pages(f"repos/{UPSTREAM}/pulls/{number}/files")
+        comments = pages(f"repos/{UPSTREAM}/issues/{number}/comments")
         changed = []
-        for file in json.loads((folder / "files.json").read_text()):
+        for file in files:
             if file["filename"].lower() == "readme.md":
                 added = "\n".join(line[1:] for line in file.get("patch", "").splitlines()
                                   if line.startswith("+") and not line.startswith("+++"))
                 changed.extend(entries(added))
         candidate["proposedEntries"] = changed
         candidate["ownerComments"] = [dict(text=row["body"], url=row["html_url"], createdAt=row["created_at"])
-                                      for row in json.loads((folder / "comments.json").read_text())
+                                      for row in comments
                                       if row.get("author_association") == "OWNER" and row["created_at"] < cutoff
                                       and row.get("updated_at", row["created_at"]) < cutoff]
         previous = indexed[number]
@@ -155,30 +145,19 @@ def prior_context(candidates: list[dict], history: list[dict], cutoff: str) -> l
     return candidates
 
 
-def collect(number: int, history: list[dict], expected_sha: str, expected_base: str) -> None:
-    target = EVIDENCE / "cases" / str(number)
-    target.mkdir(parents=True, exist_ok=True)
-    pr = github(f"repos/{REPO}/pulls/{number}")
-    if pr["state"] != "open" or pr.get("draft") or pr["head"]["sha"] != expected_sha or pr["base"]["sha"] != expected_base:
-        raise ValueError("PR changed, closed, or is draft; no review is run")
-    if pr["base"]["repo"]["full_name"] != REPO:
-        raise ValueError("PR base repository mismatch")
+def collect(pr: dict, history: list[dict]) -> tuple[dict, list[dict]]:
+    number = pr["number"]
     files = pages(f"repos/{REPO}/pulls/{number}/files")
     if len(files) > 50:
         raise ValueError("Too many changed files; manual review required")
-    write_json(target / "pr.json", pr)
-    write_json(target / "files.json", files)
     readme = next((f for f in files if f["filename"] == "README.md"), None)
     if readme is None:
         raise ValueError("No README change; manual review required")
     head_text = readme_at(pr["head"]["sha"], readme["filename"])
     base_ref = pr["base"]["sha"]
     base_text = readme_at(base_ref, readme.get("previous_filename", readme["filename"]))
-    (target / "head-README.md").write_text(head_text)
-    (target / "base-README.md").write_text(base_text)
     contribution_blob = github(f"repos/{REPO}/contents/CONTRIBUTING.md?ref={quote(base_ref)}")
     rules = base64.b64decode(contribution_blob["content"]).decode()
-    (target / "CONTRIBUTING.md").write_text(rules)
     added = [line[1:] for line in readme.get("patch", "").splitlines()
              if line.startswith("+") and not line.startswith("+++")]
     proposals = [entry for entry in entries(head_text) if entry["markdown"] in added]
@@ -186,8 +165,8 @@ def collect(number: int, history: list[dict], expected_sha: str, expected_base: 
         raise ValueError("Evidence size limit exceeded; manual review required")
     existing = entries(base_text)
     sources = []
-    for index, entry in enumerate(proposals):
-        source = fetch_source(entry["url"], target / f"official-{index}.html")
+    for entry in proposals:
+        source = fetch_source(entry["url"])
         source["entryUrl"] = entry["url"]
         sources.append(source)
         parsed = urlsplit(entry["url"])
@@ -197,11 +176,8 @@ def collect(number: int, history: list[dict], expected_sha: str, expected_base: 
             try:
                 blob = public_github_readme(repo_name)
                 content = base64.b64decode(blob["content"]).decode("utf-8", errors="replace")
-                path = target / f"official-{index}-README.md"
-                path.write_text(content)
                 sources.append(dict(url=blob["html_url"], entryUrl=entry["url"], status=200,
-                                    excerpt=content[:22000], sha256=hashlib.sha256(content.encode()).hexdigest(),
-                                    file=path.name))
+                                    excerpt=content[:22000], sha256=hashlib.sha256(content.encode()).hexdigest()))
             except (HTTPError, URLError, TimeoutError, OSError, ValueError, KeyError):
                 pass
     cutoff = pr["closed_at"] or datetime.now(timezone.utc).isoformat()
@@ -248,5 +224,5 @@ def collect(number: int, history: list[dict], expected_sha: str, expected_base: 
                   historicalSearch=dict(pullRequestsScanned=len(history), matchingPriorSubmissions=len(candidates),
                                         cutoff=cutoff, targetOutcomeIncluded=False),
                   sources=sources)
-    write_json(target / "packet.json", packet)
     print(f"Collected PR #{number}: {len(proposals)} entries, {len(candidates)} prior submissions", flush=True)
+    return packet, files

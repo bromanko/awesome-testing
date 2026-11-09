@@ -29,25 +29,18 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
-      - name: Collect PR evidence
-        env:
-          GH_TOKEN: ${{ github.token }}
-          UM_REVIEW_WORK: ${{ runner.temp }}/um-review-collection
-        run: >-
-          python3 .um/awesome-testing/scripts/ci.py prepare
-          --event-file "$GITHUB_EVENT_PATH"
-          --output "$RUNNER_TEMP/um-review-input"
       - name: Install Claude
         shell: bash
         run: |
           curl -fsSL https://claude.ai/install.sh | bash -s 2.1.284
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Check PR is current
+      - name: Collect PR evidence
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          python3 .um/awesome-testing/scripts/ci.py check-current
-          --input-dir "$RUNNER_TEMP/um-review-input"
+          python3 .um/awesome-testing/scripts/ci.py prepare
+          --event-file "$GITHUB_EVENT_PATH"
+          --output "$RUNNER_TEMP/um-review-input"
       - name: Check API key
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

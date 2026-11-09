@@ -3,7 +3,6 @@
 import argparse
 import html
 import json
-import os
 from pathlib import Path
 import re
 import sys
@@ -37,17 +36,18 @@ def request_from_event(event, repository):
             "headSha": pr["head"]["sha"], "baseSha": pr["base"]["sha"]}
 
 
-def fresh(request):
+def current_pr(request):
     if request["repository"] != collect.REPO:
         raise ValueError("Request repository mismatch")
     number = request["number"]
     if type(number) is not int or number < 1:
         raise ValueError("Invalid PR number")
     current = collect.github(f"repos/{collect.REPO}/pulls/{number}")
-    return (current["state"] == "open" and not current.get("draft")
+    matches = (current["state"] == "open" and not current.get("draft")
             and current["head"]["sha"] == request["headSha"]
             and current["base"]["sha"] == request["baseSha"]
             and current["base"]["repo"]["full_name"] == request["repository"])
+    return current if matches else None
 
 
 def edit_warnings(readme, proposals):
@@ -73,15 +73,13 @@ def edit_warnings(readme, proposals):
 
 def prepare(event_file, output):
     request = request_from_event(json.loads(event_file.read_text()), collect.REPO)
-    if not fresh(request):
+    pr = current_pr(request)
+    if pr is None:
         raise ValueError("Superseded PR event; no review is run")
     # Search the original project's history even when testing in Brian's fork.
     history = collect.pages(f"repos/{collect.UPSTREAM}/pulls?state=all")
-    collect.collect(request["number"], history, request["headSha"], request["baseSha"])
-    packet = json.loads((collect.EVIDENCE / f"cases/{request['number']}/packet.json").read_text())
+    packet, files = collect.collect(pr, history)
     packet["collectionWarnings"] = []
-    # A truncated/missing patch cannot prove that all additions were extracted.
-    files = json.loads((collect.EVIDENCE / f"cases/{request['number']}/files.json").read_text())
     readme = next(f for f in files if f["filename"] == "README.md")
     packet["collectionWarnings"].extend(edit_warnings(readme, packet["proposals"]))
     packet["readmeDiff"] = readme.get("patch", "")
@@ -92,7 +90,7 @@ def prepare(event_file, output):
         raise ValueError("Too many submitted links; manual review required")
     checks = []
     for url in urls:
-        result = collect.fetch_source(url, collect.EVIDENCE / f"checks/{len(checks)}.body")
+        result = collect.fetch_source(url)
         checks.append({"url": url, "status": result.get("status"),
                        "passed": result.get("status") is not None and 200 <= result["status"] < 300,
                        "error": result.get("error")})
@@ -103,7 +101,7 @@ def prepare(event_file, output):
     encoded = json.dumps(packet, ensure_ascii=False, indent=2).encode()
     if len(encoded) > MAX_PACKET:
         raise ValueError("Evidence packet exceeds 512 KiB; manual review required")
-    if not fresh(request):
+    if current_pr(request) is None:
         raise ValueError("PR changed during collection; no review is run")
     output.mkdir(parents=True, exist_ok=True)
     (output / "packet.json").write_bytes(encoded + b"\n")
@@ -119,7 +117,6 @@ def render(packet, raw, current):
     if not current:
         decision["humanReview"] = True
         decision["guardReasons"].append("PR changed, closed, or became draft after collection; this preview is stale.")
-    plan = review.action_plan(packet, decision, "open" if current else "stale")
     comment = html.escape(decision["contributorComment"])
     body = (f"# PR #{packet['pullRequest']['number']} dry-run preview\n\n"
             f"Head: `{packet['pullRequest']['headSha']}`\n\n"
@@ -130,7 +127,7 @@ def render(packet, raw, current):
             "## Proposed contributor comment (untrusted model output)\n\n"
             f"{comment}\n\n## Guard reasons\n\n"
             + "\n".join("- " + html.escape(reason) for reason in decision["guardReasons"]) + "\n")
-    return decision, plan, body
+    return decision, body
 
 
 def finish(input_dir, decision_file, output, offline=False):
@@ -142,12 +139,11 @@ def finish(input_dir, decision_file, output, offline=False):
         raise ValueError("Evidence/request identity mismatch")
     if decision_file.stat().st_size > 65536:
         raise ValueError("Oversized decision export")
-    current = False if offline else fresh(request)
+    current = False if offline else current_pr(request) is not None
     raw = json.loads(decision_file.read_text())
-    decision, plan, body = render(packet, raw, current)
+    decision, body = render(packet, raw, current)
     output.mkdir(parents=True, exist_ok=True)
-    for filename, value in (("request.json", request), ("decision.json", decision), ("action-plan.json", plan)):
-        collect.write_json(output / filename, value)
+    collect.write_json(output / "decision.json", decision)
     (output / "review.md").write_text(body)
     print(f"Dry-run report ready; humanReview={decision['humanReview']}; externalChangesPerformed=0")
 
@@ -158,8 +154,6 @@ def main():
     pre = commands.add_parser("prepare")
     pre.add_argument("--event-file", type=Path, required=True)
     pre.add_argument("--output", type=Path, required=True)
-    check = commands.add_parser("check-current")
-    check.add_argument("--input-dir", type=Path, required=True)
     post = commands.add_parser("finish")
     post.add_argument("--input-dir", type=Path, required=True)
     post.add_argument("--decision-file", type=Path, required=True)
@@ -168,9 +162,6 @@ def main():
     args = parser.parse_args()
     if args.command == "prepare":
         prepare(args.event_file, args.output)
-    elif args.command == "check-current":
-        if not fresh(json.loads((args.input_dir / "request.json").read_text())):
-            raise ValueError("Superseded PR evidence; no model call is run")
     else:
         finish(args.input_dir, args.decision_file, args.output, args.offline)
 
