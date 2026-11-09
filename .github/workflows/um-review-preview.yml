@@ -1,0 +1,87 @@
+name: Preview UM review summary
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Open, non-draft PR number in this fork
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: um-preview-${{ inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: awesome-testing-review
+    steps:
+      - name: Check API key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: test -n "$ANTHROPIC_API_KEY" || { echo 'Add ANTHROPIC_API_KEY to the awesome-testing-review environment.'; exit 1; }
+      - name: Check out review implementation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 03ea712c4f6261941462afb32b15fbb9643dff06
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - name: Install Claude
+        shell: bash
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash -s 2.1.284
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Collect PR evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/preview-pr.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          pr = json.loads((root / 'preview-pr.json').read_text())
+          event = {'action': 'opened', 'number': pr['number'], 'repository': {'full_name': os.environ['GITHUB_REPOSITORY']}, 'pull_request': pr}
+          (root / 'preview-event.json').write_text(json.dumps(event))
+          PY
+          python3 .um/awesome-testing/scripts/ci.py prepare --event-file "$RUNNER_TEMP/preview-event.json" --output "$RUNNER_TEMP/um-review-input"
+      - name: Run review
+        id: um
+        uses: useful-machinery/run-action@3b5d29379bc349df8d95b29b599e71701aa1d017
+        with:
+          um-version: 0.72.1
+          workflow: .um/awesome-testing/workflow.yaml
+          source-root: .um/awesome-testing
+          execution-root: ${{ runner.temp }}/um-review-input
+          export: decision
+          inputs: >-
+            {"packet":{"kind":"text","path":"${{ runner.temp }}/um-review-input/packet.json"}}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - name: Prepare report
+        if: steps.um.outputs.export-state == 'available'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DECISION_PATH: ${{ steps.um.outputs.export-path }}
+        run: >-
+          python3 .um/awesome-testing/scripts/ci.py finish
+          --input-dir "$RUNNER_TEMP/um-review-input"
+          --decision-file "$DECISION_PATH"
+          --output "$RUNNER_TEMP/um-review-report"
+      - name: Summarize result
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/um-review-report/review.md" ]; then
+            cat "$RUNNER_TEMP/um-review-report/review.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '%s\n' '## UM contribution review' 'No report was produced. Check the run steps for details.' >> "$GITHUB_STEP_SUMMARY"
+          fi
