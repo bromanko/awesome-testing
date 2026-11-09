@@ -15,7 +15,6 @@ concurrency:
 jobs:
   collect:
     if: >-
-      github.repository == 'bromanko/awesome-testing' &&
       vars.UM_PR_REVIEW_ENABLED == 'true' &&
       github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
