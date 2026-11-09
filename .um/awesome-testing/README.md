@@ -20,13 +20,14 @@ A hosted GitHub run and live model trial remain unverified.
   Repeated PR events can incur repeated charges after enablement. Workflow
   concurrency cancels an older run for the same PR; it is not a global spend cap.
 - Reports: `review.md`, `decision.json`, `action-plan.json`, and the exact PR
-  identity. The action plan is explicitly hypothetical. Artifact retention is
-  seven days. The evidence packet stays on the runner and is passed between steps as a local file.
+  identity are generated locally on the runner. The action plan is explicitly
+  hypothetical. The review is displayed directly in the Actions run summary;
+  no report artifacts are uploaded. The evidence packet stays on the runner.
 
 ## Files and responsibilities
 
 - [GitHub workflow](../../.github/workflows/um-pr-review.yml): trusted checkout,
-  one protected job for collection and review, followed by report upload.
+  one protected job for collection and review, followed by the report summary.
 - [Offline CI checks](../../.github/workflows/um-pr-review-checks.yml): tests on
   ordinary PRs without provider secrets or a privileged PR context.
 - [UM workflow](workflow.yaml): the existing evidence-only agent review and
@@ -70,10 +71,9 @@ These are future setup steps, not actions already performed:
    write token is needed. Credential creation/configuration needs separate approval.
 4. Set repository variable `UM_PR_REVIEW_ENABLED=true`. Keep GitHub token
    permissions read-only. The job requests only `contents: read` and
-   `pull-requests: read`; allow ordinary required artifact actions if your
-   organization has an action allowlist.
+   `pull-requests: read`.
 5. Open a small README-only test PR **against Brian's fork**. Approve the protected
-   environment job, inspect the Actions run, and download the report. Verify the
+   environment job, read the report in the Actions run summary. Verify the
    report's exact head SHA. No contributor-facing message will be sent.
 6. Set `UM_PR_REVIEW_ENABLED=false` to stop new model jobs. Cancel any already
    running or pending job separately. Do not add auto-approval/publication until
@@ -129,9 +129,9 @@ It is not evidence that model confidence is calibrated or that overlap accuracy
 has improved. The revised prompt still needs a controlled live evaluation.
 
 No raw Claude sessions, configuration directories, execution directories, API
-keys, or local experiment result archives are uploaded. The only model artifact
-is the guarded report. GitHub Actions artifacts in a public repository may be
-accessible to people who can read the repository; submit public data only.
+keys, or local experiment result archives are uploaded. Only the guarded review
+is displayed in the Actions summary. Summaries in a public repository are visible
+to people who can read the repository; submit public data only.
 
 ## Local verification
 
@@ -166,5 +166,5 @@ Verification completed locally on macOS ARM64:
 - Hardened HTTP fetch of the public upstream GitHub repository.
 
 The command-only smoke test proves action input/export plumbing, **not** Claude's
-live structured-result behavior or GitHub-hosted event/environment/artifact wiring.
+live structured-result behavior or GitHub-hosted event/environment/summary wiring.
 Those remain the first controlled fork trial after publication and explicit setup.

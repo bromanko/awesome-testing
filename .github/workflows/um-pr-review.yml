@@ -84,15 +84,11 @@ jobs:
           --input-dir "$RUNNER_TEMP/um-review-input"
           --decision-file "$DECISION_PATH"
           --output "$RUNNER_TEMP/um-review-report"
-      - name: Upload report
-        if: steps.um.outputs.export-state == 'available'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: um-review-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-          path: ${{ runner.temp }}/um-review-report/
-          retention-days: 7
-          if-no-files-found: error
       - name: Summarize result
         if: always()
         run: |
-          printf '%s\n' '## UM contribution review' 'Dry-run only. No PR comment, review, approval, closure, or merge is submitted.' 'Download the report artifact for the proposed decision and comment, or inspect the failed step.' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "$RUNNER_TEMP/um-review-report/review.md" ]; then
+            cat "$RUNNER_TEMP/um-review-report/review.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '%s\n' '## UM contribution review' 'No report was produced. Check the run steps for details.' >> "$GITHUB_STEP_SUMMARY"
+          fi
