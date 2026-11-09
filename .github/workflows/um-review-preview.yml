@@ -29,7 +29,7 @@ jobs:
       - name: Check out review implementation
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: 03ea712c4f6261941462afb32b15fbb9643dff06
+          ref: bda27fffa3f359ef4933cdc1723934c32daf760a
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
