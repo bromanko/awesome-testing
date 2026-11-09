@@ -6,9 +6,7 @@ inputs:
     kind: text
 
 environmentPassthrough:
-  - AWESOME_TESTING_REAL_CLAUDE
   - ANTHROPIC_API_KEY
-  - CLAUDE_CONFIG_DIR
 
 agentProfiles:
   reviewer:

@@ -409,21 +409,6 @@ class PipelineTests(unittest.TestCase):
                 self.assertEqual(sorted(p.name for p in (root / "report").iterdir()),
                                  ["action-plan.json", "decision.json", "request.json", "review.md"])
 
-    def test_claude_wrapper_preserves_protocol_and_strips_tools(self):
-        import os
-        with tempfile.TemporaryDirectory() as directory:
-            fake = Path(directory) / "fake-claude"
-            fake.write_text("#!/usr/bin/env python3\nimport json, sys\nprint(json.dumps(sys.argv[1:]))\n")
-            fake.chmod(0o755)
-            result = subprocess.run([sys.executable, str(ROOT / "bin/claude"), "--permission-mode", "bypassPermissions", "--setting-sources", "user,project", "--print"],
-                                    env=dict(os.environ, AWESOME_TESTING_REAL_CLAUDE=str(fake)), capture_output=True, text=True, check=True)
-            args = json.loads(result.stdout)
-            self.assertEqual(args[args.index("--permission-mode") + 1], "bypassPermissions")
-            self.assertEqual(args[args.index("--setting-sources") + 1], "")
-            self.assertEqual(args[args.index("--tools") + 1], "")
-            self.assertIn("--bare", args)
-            self.assertIn("--disable-slash-commands", args)
-            self.assertEqual(args[args.index("--max-budget-usd") + 1], "1.00")
 
 
 class HistoryTests(unittest.TestCase):

@@ -42,15 +42,6 @@ jobs:
         run: |
           curl -fsSL https://claude.ai/install.sh | bash -s 2.1.284
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Configure Claude
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/um-review-execution/bin" "$RUNNER_TEMP/um-review-claude"
-          real_claude="$(command -v claude)"
-          printf 'AWESOME_TESTING_REAL_CLAUDE=%s\n' "$real_claude" >> "$GITHUB_ENV"
-          cp .um/awesome-testing/bin/claude "$RUNNER_TEMP/um-review-execution/bin/claude"
-          chmod +x "$RUNNER_TEMP/um-review-execution/bin/claude"
-          printf '%s\n' "$RUNNER_TEMP/um-review-execution/bin" >> "$GITHUB_PATH"
       - name: Check PR is current
         env:
           GH_TOKEN: ${{ github.token }}
@@ -73,7 +64,6 @@ jobs:
             {"packet":{"kind":"text","path":"${{ runner.temp }}/um-review-input/packet.json"}}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/um-review-claude
       - name: Prepare report
         if: steps.um.outputs.export-state == 'available'
         env:

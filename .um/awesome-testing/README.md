@@ -16,7 +16,8 @@ A hosted GitHub run and live model trial remain unverified.
   ready-for-review events. Drafts are skipped.
 - Trust boundary: code, prompt, schema, and workflow always come from the **base
   commit**, never the PR head. The PR README/diff/body are API-fetched data only.
-- Model: `claude-sonnet-5`, effort `low`, maximum API budget $1 per invocation.
+- Model: `claude-sonnet-5`, effort `low`, using the official Claude Code executable
+  through UM with its normal tools. There is no per-invocation dollar cap.
   Repeated PR events can incur repeated charges after enablement. Workflow
   concurrency cancels an older run for the same PR; it is not a global spend cap.
 - Reports: `review.md`, `decision.json`, `action-plan.json`, and the exact PR
@@ -36,8 +37,6 @@ A hosted GitHub run and live model trial remain unverified.
 - `scripts/public_http.py`: unauthenticated, public-IP-pinned HTTP(S) requests.
 - `scripts/ci.py`: event validation, freshness checks, preparation, report rendering.
 - `scripts/review.py`: pure evidence guards and hypothetical request descriptions.
-- `bin/claude`: no tools, skills, hooks, plugins, ambient settings, or MCP servers.
-  It preserves UM's native stream/result protocol and permission-mode argument.
 
 ## Version contract
 
@@ -152,7 +151,7 @@ and the pinned Claude harness; GitHub-hosted Ubuntu supplies `gh`.
 
 Verification completed locally on macOS ARM64:
 
-- 55 offline regression tests, including a mocked prepare-to-report pipeline and
+- 54 offline regression tests, including a mocked prepare-to-report pipeline and
   uncertain-overlap guards at the decision, raw action-plan, and CI report boundaries.
 - Offline replay of all 32 retained experiment cases through the ported guard:
   maintainer routes increased from 18 to 21. Endtest (Opus low) and Persqo (Opus low
@@ -161,8 +160,8 @@ Verification completed locally on macOS ARM64:
 - Python compilation, actionlint 1.7.12 with shellcheck, and UM 0.57.0 validation.
 - Exact pinned run-action execution with a synthetic command-only workflow,
   named Text packet, schema-validated JSON decision, and available export path.
-- Claude 2.1.284 installation/version and wrapper flag parsing, without authentication
-  or provider requests.
+- Claude 2.1.284 installation/version, without authentication or provider requests.
+  The normal-agent configuration still needs a live hosted trial.
 - Hardened HTTP fetch of the public upstream GitHub repository.
 
 The command-only smoke test proves action input/export plumbing, **not** Claude's
