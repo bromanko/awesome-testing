@@ -34,13 +34,6 @@ jobs:
         run: |
           curl -fsSL https://claude.ai/install.sh | bash -s 2.1.284
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Collect PR evidence
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >-
-          python3 .um/awesome-testing/scripts/ci.py prepare
-          --event-file "$GITHUB_EVENT_PATH"
-          --output "$RUNNER_TEMP/um-review-input"
       - name: Check API key
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -52,27 +45,21 @@ jobs:
           um-version: 0.72.1
           workflow: .um/awesome-testing/workflow.yaml
           source-root: .um/awesome-testing
-          execution-root: ${{ runner.temp }}/um-review-input
-          export: decision
+          execution-root: .um/awesome-testing
+          export: report
           inputs: >-
-            {"packet":{"kind":"text","path":"${{ runner.temp }}/um-review-input/packet.json"}}
+            {"event":{"kind":"text","path":"${{ github.event_path }}"}}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      - name: Prepare report
-        if: steps.um.outputs.export-state == 'available'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          DECISION_PATH: ${{ steps.um.outputs.export-path }}
-        run: >-
-          python3 .um/awesome-testing/scripts/ci.py finish
-          --input-dir "$RUNNER_TEMP/um-review-input"
-          --decision-file "$DECISION_PATH"
-          --output "$RUNNER_TEMP/um-review-report"
+          REVIEW_GITHUB_TOKEN: ${{ github.token }}
       - name: Summarize result
         if: always()
+        env:
+          REPORT_STATE: ${{ steps.um.outputs.export-state }}
+          REPORT_PATH: ${{ steps.um.outputs.export-path }}
         run: |
-          if [ -f "$RUNNER_TEMP/um-review-report/review.md" ]; then
-            cat "$RUNNER_TEMP/um-review-report/review.md" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$REPORT_STATE" = available ] && [ -f "$REPORT_PATH" ]; then
+            cat "$REPORT_PATH" >> "$GITHUB_STEP_SUMMARY"
           else
             printf '%s\n' '## UM contribution review' 'No report was produced. Check the run steps for details.' >> "$GITHUB_STEP_SUMMARY"
           fi

@@ -238,7 +238,7 @@ class EventTests(unittest.TestCase):
             (root / "request.json").write_text(json.dumps(ci.request_from_event(event(), collect.REPO)))
             (root / "decision.json").write_text(json.dumps(decision()))
             with patch.object(ci, "current_pr", return_value=None):
-                ci.finish(root, root / "decision.json", root / "report")
+                ci.finish(root / "packet.json", root / "request.json", root / "decision.json", root / "report")
             result = json.loads((root / "report/decision.json").read_text())
             self.assertTrue(result["humanReview"])
             self.assertIn("stale", (root / "report/review.md").read_text())
@@ -250,11 +250,11 @@ class EventTests(unittest.TestCase):
             (root / "request.json").write_text(json.dumps(ci.request_from_event(event(), collect.REPO)))
             with patch.object(ci, "current_pr") as api:
                 with self.assertRaisesRegex(ValueError, "identity"):
-                    ci.finish(root, root / "decision.json", root / "out")
+                    ci.finish(root / "packet.json", root / "request.json", root / "decision.json", root / "out")
                 api.assert_not_called()
 
     def test_no_authenticated_arbitrary_api(self):
-        with patch.object(collect.subprocess, "run") as run:
+        with patch.object(collect, "urlopen") as run:
             with self.assertRaises(ValueError): collect.github("repos/other/private/readme")
             run.assert_not_called()
 
@@ -318,7 +318,7 @@ class PipelineTests(unittest.TestCase):
                 self.assertEqual(data["collectionWarnings"], [])
                 self.assertEqual(data["changes"][0]["patch"], change["patch"])
                 (root / "decision.json").write_text(json.dumps(decision()))
-                ci.finish(root / "input", root / "decision.json", root / "report")
+                ci.finish(root / "input/packet.json", root / "input/request.json", root / "decision.json", root / "report")
                 report = (root / "report/review.md").read_text()
                 self.assertIn("**Recommendation: Approve**", report)
                 self.assertNotIn("## Needs your judgment", report)

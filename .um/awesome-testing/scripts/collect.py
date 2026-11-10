@@ -6,7 +6,7 @@ import json
 import os
 import re
 from pathlib import Path
-import subprocess
+from urllib.request import Request, urlopen
 from urllib.parse import quote
 
 
@@ -22,12 +22,15 @@ def write_json(path: Path, value: object) -> None:
 
 
 def github(endpoint: str) -> object:
-    # This collector never accepts an HTTP method or arbitrary executable.
     if not endpoint.startswith((f"repos/{REPO}/", f"repos/{UPSTREAM}/")):
         raise ValueError("GitHub API destination is outside the review repositories")
-    result = subprocess.run(["gh", "api", "--hostname", "github.com", "--method", "GET", endpoint],
-                            text=True, capture_output=True, timeout=60, check=True)
-    return json.loads(result.stdout)
+    request = Request("https://api.github.com/" + endpoint,
+                      headers={"Accept": "application/vnd.github+json", "User-Agent": "awesome-testing-review"})
+    token = os.environ.get("REVIEW_GITHUB_TOKEN")
+    if token:
+        request.add_header("Authorization", "Bearer " + token)
+    with urlopen(request, timeout=60) as response:
+        return json.load(response)
 
 
 def pages(endpoint: str) -> list:

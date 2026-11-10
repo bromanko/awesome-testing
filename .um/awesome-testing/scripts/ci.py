@@ -3,9 +3,11 @@
 import argparse
 import html
 import json
+import os
 from pathlib import Path
 import re
 import sys
+from urllib.error import URLError
 
 import collect
 import review
@@ -51,7 +53,9 @@ def current_pr(request):
 
 
 def prepare(event_file, output):
-    request = request_from_event(json.loads(event_file.read_text()), collect.REPO)
+    event = json.loads(event_file.read_text())
+    request = request_from_event(event, event.get("repository", {}).get("full_name"))
+    collect.REPO = request["repository"]
     pr = current_pr(request)
     if pr is None:
         raise ValueError("Superseded PR event; no review is run")
@@ -98,13 +102,16 @@ def render(packet, raw, current):
     return decision, body
 
 
-def finish(input_dir, decision_file, output, offline=False):
-    packet = json.loads((input_dir / "packet.json").read_text())
-    request = json.loads((input_dir / "request.json").read_text())
+def finish(packet_file, request_file, decision_file, output, offline=False):
+    packet = json.loads(packet_file.read_text())
+    request = json.loads(request_file.read_text())
     if (packet["repository"] != request["repository"] or packet["pullRequest"]["number"] != request["number"]
             or packet["pullRequest"]["headSha"] != request["headSha"]
             or packet["snapshot"]["baseSha"] != request["baseSha"]):
         raise ValueError("Evidence/request identity mismatch")
+    if request["repository"] not in {"bromanko/awesome-testing", collect.UPSTREAM}:
+        raise ValueError("Unsupported repository")
+    collect.REPO = request["repository"]
     if decision_file.stat().st_size > 65536:
         raise ValueError("Oversized decision export")
     current = False if offline else current_pr(request) is not None
@@ -113,29 +120,22 @@ def finish(input_dir, decision_file, output, offline=False):
     output.mkdir(parents=True, exist_ok=True)
     collect.write_json(output / "decision.json", decision)
     (output / "review.md").write_text(body)
-    print(f"Dry-run report ready; humanReview={decision['humanReview']}; externalChangesPerformed=0")
+    print(f"Review report ready; humanReview={decision['humanReview']}; externalChangesPerformed=0")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    commands = parser.add_subparsers(dest="command", required=True)
-    pre = commands.add_parser("prepare")
-    pre.add_argument("--event-file", type=Path, required=True)
-    pre.add_argument("--output", type=Path, required=True)
-    post = commands.add_parser("finish")
-    post.add_argument("--input-dir", type=Path, required=True)
-    post.add_argument("--decision-file", type=Path, required=True)
-    post.add_argument("--output", type=Path, required=True)
-    post.add_argument("--offline", action="store_true", help="Always mark the report stale; test only")
+    parser.add_argument("command", choices=["prepare", "finish"])
     args = parser.parse_args()
+    inputs = Path(os.environ["UM_STEP_INPUTS"]) / "values"
     if args.command == "prepare":
-        prepare(args.event_file, args.output)
+        prepare(inputs / "event", Path("work/input"))
     else:
-        finish(args.input_dir, args.decision_file, args.output, args.offline)
+        finish(inputs / "packet", inputs / "request", inputs / "decision", Path("work/report"))
 
 
 if __name__ == "__main__":
     try:
         main()
-    except (ValueError, KeyError) as error:
+    except (ValueError, KeyError, URLError) as error:
         sys.exit(f"Review blocked: {error}")

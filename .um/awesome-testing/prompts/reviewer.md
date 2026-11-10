@@ -39,7 +39,9 @@ Own the investigation; the packet is a starting point, not a citation allowlist:
   repository and number; a same-numbered PR in another repository is unrelated.
   For example use gh api --method GET search/issues with a q of
   'repo:TheJambo/awesome-testing is:pr RESOURCE'. If gh cannot authenticate, use
-  curl on the public API. Fetch relevant prior PR /files to identify the actual
+  curl on the public API. When REVIEW_GITHUB_TOKEN is available, you may use it
+  as GH_TOKEN for a single read-only gh command; never print or include the token
+  in a report. Fetch relevant prior PR /files to identify the actual
   proposed URL; names alone are not duplicate evidence. Cite a comment's permalink
   when relying on it. Search summaries are leads, not evidence of submitted content
   or closure reasons.
