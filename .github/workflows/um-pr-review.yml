@@ -1,0 +1,65 @@
+name: UM contribution review
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: um-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: >-
+      vars.UM_PR_REVIEW_ENABLED == 'true' &&
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: awesome-testing-review
+    steps:
+      - name: Check out base branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - name: Install Claude
+        shell: bash
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash -s 2.1.284
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Check API key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: test -n "$ANTHROPIC_API_KEY" || { echo 'Configure ANTHROPIC_API_KEY in the protected environment.'; exit 1; }
+      - name: Run review
+        id: um
+        uses: useful-machinery/run-action@3b5d29379bc349df8d95b29b599e71701aa1d017
+        with:
+          um-version: 0.72.1
+          workflow: .um/awesome-testing/workflow.yaml
+          source-root: .um/awesome-testing
+          execution-root: .um/awesome-testing
+          export: report
+          inputs: >-
+            {"event":{"kind":"text","path":"${{ github.event_path }}"}}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          REVIEW_GITHUB_TOKEN: ${{ github.token }}
+      - name: Summarize result
+        if: always()
+        env:
+          REPORT_STATE: ${{ steps.um.outputs.export-state }}
+          REPORT_PATH: ${{ steps.um.outputs.export-path }}
+        run: |
+          if [ "$REPORT_STATE" = available ] && [ -f "$REPORT_PATH" ]; then
+            cat "$REPORT_PATH" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '%s\n' '## UM contribution review' 'No report was produced. Check the run steps for details.' >> "$GITHUB_STEP_SUMMARY"
+          fi

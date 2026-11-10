@@ -1,0 +1,73 @@
+schemaVersion: 1
+description: Collect pinned PR evidence, review the contribution, and export an advisory report; never writes to GitHub.
+
+inputs:
+  event:
+    kind: text
+
+environmentPassthrough:
+  - ANTHROPIC_API_KEY
+  - REVIEW_GITHUB_TOKEN
+
+agentProfiles:
+  reviewer:
+    harness:
+      kind: claude_code
+      config:
+        model: claude-sonnet-5
+        effort: medium
+
+steps:
+  collect:
+    kind: cmd
+    inputs:
+      event:
+        ref: inputs.event
+    command:
+      argv: [python3, scripts/ci.py, prepare]
+    outputs:
+      packet:
+        kind: text
+        from: path
+        path: work/input/packet.json
+      request:
+        kind: text
+        from: path
+        path: work/input/request.json
+
+  review:
+    kind: agent
+    cwd: work/input
+    agent:
+      profile: reviewer
+      systemPrompt: prompts/reviewer.md
+      message:
+        text:
+          - file: schemas/decision.json
+          - ref: outputs.collect.packet
+    outputs:
+      decision:
+        kind: json
+        from: agent_result
+        schema: schemas/decision.json
+
+  report:
+    kind: cmd
+    inputs:
+      packet:
+        ref: outputs.collect.packet
+      request:
+        ref: outputs.collect.request
+      decision:
+        ref: outputs.review.decision
+    command:
+      argv: [python3, scripts/ci.py, finish]
+    outputs:
+      report:
+        kind: text
+        from: path
+        path: work/report/review.md
+
+exports:
+  report:
+    ref: outputs.report.report

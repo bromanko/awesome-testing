@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decision",
+    "humanReview",
+    "confidence",
+    "summary",
+    "findings",
+    "contributorComment",
+    "category",
+    "proposedEntry",
+    "research"
+  ],
+  "properties": {
+    "decision": {
+      "enum": [
+        "approve",
+        "request_changes",
+        "reject"
+      ]
+    },
+    "humanReview": {
+      "type": "boolean"
+    },
+    "confidence": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2400
+    },
+    "category": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "proposedEntry": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 1800
+    },
+    "contributorComment": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 3000
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "severity",
+          "message",
+          "evidence"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "rule",
+              "duplicate",
+              "factual",
+              "category",
+              "link",
+              "uncertainty"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "blocking",
+              "advisory"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 1600
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^https?://[^\\s]+$"
+            },
+            "minItems": 1,
+            "maxItems": 5
+          }
+        }
+      }
+    },
+    "research": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sources",
+        "historySearch",
+        "coverageComparison",
+        "limitations"
+      ],
+      "properties": {
+        "sources": {
+          "type": "array",
+          "maxItems": 15,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "url",
+              "status",
+              "observation"
+            ],
+            "properties": {
+              "url": {
+                "type": "string",
+                "pattern": "^https?://[^\\s]+$"
+              },
+              "status": {
+                "enum": [
+                  "accessed",
+                  "unavailable"
+                ]
+              },
+              "observation": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1200
+              }
+            }
+          }
+        },
+        "historySearch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2400
+        },
+        "coverageComparison": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2400
+        },
+        "limitations": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "maxLength": 1200
+          }
+        }
+      }
+    }
+  }
+}
