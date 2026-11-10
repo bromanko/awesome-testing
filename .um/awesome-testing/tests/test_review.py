@@ -296,6 +296,8 @@ class PipelineTests(unittest.TestCase):
             def github(endpoint):
                 if endpoint == f"repos/{collect.REPO}/pulls/7":
                     return copy.deepcopy(payload["pull_request"])
+                if "/compare/" in endpoint:
+                    return dict(merge_base_commit=dict(sha="b" * 40))
                 if "/pulls/7/files?" in endpoint:
                     return [change]
                 if "/pulls?" in endpoint:

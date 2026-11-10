@@ -22,7 +22,14 @@ and is cancelled when a newer review starts for the same PR.
 
 The report includes a recommendation, suggested response, and investigation of
 submission history and similar entries. Research gaps or inconsistent findings
-appear under “Needs your judgment.” Recommendations can be wrong, and sources are
+appear under “Needs your judgment.” The collector also extracts changed resource
+URLs and headings from the PR's pinned common ancestor and head README, then checks
+those additions against the current pinned target README. Additional occurrences of an
+exact existing URL are flagged; moves and description edits are not treated as
+new duplicates. Matching does not follow redirects or infer equivalent products,
+and extraction covers the list's one-line inline Markdown links.
+
+Recommendations can be wrong, and sources are
 reported by the agent rather than independently verified. Check the evidence
 before acting. A report is marked stale if the PR changes during the review.
 

@@ -16,6 +16,12 @@ def public_citation(url):
 def guard(packet, raw):
     decision = deepcopy(raw)
     reasons = list(packet.get("collectionWarnings", []))
+    for change in packet.get("readmeChanges", []):
+        if change["kind"] == "added" and change["existingMatches"]:
+            entry = change["after"]
+            locations = "; ".join(f"{match['category'] or 'uncategorized'} (base README line {match['line']})"
+                                  for match in change["existingMatches"])
+            reasons.append(f"Added entry \"{entry['name']}\" uses a URL already listed under {locations}: {entry['url']}. Check whether another listing is intended.")
     research = decision.get("research", {})
     sources = research.get("sources", [])
     known = {packet["pullRequest"]["url"], packet["rules"]["url"], packet["rules"]["readmeUrl"]}
